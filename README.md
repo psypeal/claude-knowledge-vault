@@ -146,6 +146,56 @@ Tier 3  ─────  raw/                    Full source text (only when dep
 
 <br />
 
+## Compounding Knowledge
+
+Every query can make the vault smarter. When you ask a question, Claude automatically classifies the answer and decides whether it enriches the knowledge graph.
+
+```mermaid
+flowchart TD
+    Q["vault query"] --> A["Compose answer\nfrom vault sources"]
+    A --> D{"Dedup check:\nalready answered?"}
+    D -->|yes| S1["Reference existing output\n(no duplicate filed)"]
+    D -->|no| C{"Classify"}
+    C -->|"2+ sources,\nnew relationship,\nevidence-backed"| SYN["**Synthesize**"]
+    C -->|"200+ words or\n3+ concepts"| REC["**Record**"]
+    C -->|"single source\nor simple lookup"| SKIP["**Skip**"]
+    SYN --> F1["File to wiki/outputs/\n+ update concept graph"]
+    REC --> F2["File to wiki/outputs/"]
+    SKIP --> F3["Answer only\n(nothing filed)"]
+
+    style SYN fill:#2d6a4f,color:#fff
+    style REC fill:#1d3557,color:#fff
+    style SKIP fill:#6c757d,color:#fff
+```
+
+### The three tiers
+
+| Tier | When | What happens | Example |
+|:-----|:-----|:-------------|:--------|
+| **Synthesize** | Answer connects 2+ sources and reveals a relationship not already in the graph | Files the answer AND updates concept `related` fields in both directions | *"How do transformers compare to RNNs?"* draws from two papers, links `transformer-architecture` ↔ `recurrent-networks` |
+| **Record** | Substantial analysis but no new connections | Files the answer for future reference | *"Summarize what we know about attention"* — useful reference, but concepts already linked |
+| **Skip** | Simple lookup or already answered | Answers without filing | *"Which sources mention positional encoding?"* — quick factual lookup |
+
+### Connection strength
+
+Not all connections are equal. When a Synthesize query discovers a new relationship, it gets a strength rating:
+
+| Strength | Criteria | Graph impact |
+|:---------|:---------|:-------------|
+| **Strong** | Supported by 2+ independent sources with direct evidence | Added to concept graph |
+| **Moderate** | Supported by 1 source with clear evidence | Added to concept graph with note |
+| **Weak** | Logically inferred but not directly stated in sources | Recorded in output only — not added to graph until confirmed by a future source |
+
+### Safeguards
+
+- **Deduplication**: Before filing, checks if an existing output already covers the same question or connection
+- **Graph density cap**: Max 8 `related` entries per concept — new connections only replace weaker ones
+- **Weak connections quarantined**: Speculative links stay in outputs, not in the concept graph, until confirmed
+
+This means the concept graph stays clean and high-signal. Each deep query strengthens it. Shallow queries pass through without noise.
+
+<br />
+
 ## Lint Checks
 
 `vault lint` runs 7 health checks to keep your knowledge base consistent:

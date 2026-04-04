@@ -226,15 +226,16 @@ Answer a question grounded in the vault's knowledge. Automatically classifies ea
 2. **Identify relevant articles**: From the index tables, pick summaries and concepts that are relevant to the question.
 3. **Read articles**: Read the identified summaries and concept articles (Tier 2). Only go to raw sources (Tier 3) if summaries lack sufficient detail.
 4. **Answer**: Compose an answer grounded in the vault content. Use `[[wikilinks]]` to reference source articles inline.
-5. **Classify and act**: After composing the answer, classify it into one of three tiers:
+5. **Deduplication check**: Before filing, scan `wiki/outputs/` for existing outputs that cover the same question or connection. If a prior output already answers this query or documents the same connection, do NOT file a duplicate. Instead, reference the existing output in the answer. Only file if the new answer adds substantially new information or connections not covered by existing outputs.
+6. **Classify and act**: After composing the answer, classify it using these concrete rules:
 
 **Query classification (automatic):**
 
-| Tier | Criteria | Action | Compounds? |
-|------|----------|--------|------------|
-| **Synthesize** | Answer connects 2+ sources, reveals new relationships between concepts, or produces an insight not present in any single article | File to `wiki/outputs/` AND update `related` fields in affected concept articles AND add any newly discovered cross-references | Yes — enriches the concept graph |
-| **Record** | Answer is substantial (200+ words) and provides a useful reference, but doesn't produce new connections | File to `wiki/outputs/` only | Partially — available for future queries |
-| **Skip** | Simple lookup, factual retrieval from a single source, status check, or question already answered in an existing output | Answer only, do not file | No — avoids noise |
+| Tier | Decision rule | Action |
+|------|--------------|--------|
+| **Synthesize** | Answer meets ALL of: (a) draws evidence from 2+ different raw sources, (b) identifies a relationship not already in any concept's `related` field, (c) the relationship is grounded in source evidence (not speculative) | File to `wiki/outputs/` with `strength` rating, update concept articles |
+| **Record** | Answer meets ANY of: (a) 200+ words with structured analysis, (b) aggregates information across 3+ concept articles, (c) user explicitly says "file it" | File to `wiki/outputs/` only |
+| **Skip** | Answer meets ANY of: (a) answers from a single source without new insight, (b) under 100 words, (c) purely factual lookup ("which sources mention X?"), (d) duplicate of an existing output | Answer only, do not file |
 
 **When filing** (Synthesize or Record), write to `wiki/outputs/<descriptive-slug>.md`:
 
@@ -246,17 +247,34 @@ created: "ISO timestamp"
 classification: synthesize|record
 sources_consulted: [slug1, slug2]
 concepts_referenced: [concept-a, concept-b]
-new_connections: [concept-a -> concept-b]    # synthesize tier only
+new_connections:                              # synthesize tier only
+  - from: concept-a
+    to: concept-b
+    strength: strong|moderate|weak
+    evidence: "one-line summary of why this connection exists"
 ---
 ```
 
-6. **Synthesize tier only**: After filing, update the affected concept articles:
-   - Add new entries to `related` fields in both directions
-   - Add a brief note in the Source Evidence section referencing the output
-   - This is what creates the compounding effect — the vault becomes smarter with each deep query
+**Connection strength** (synthesize tier only):
 
-7. Update `wiki/index.md` recent outputs section if an output was filed.
-8. Tell the user which tier was applied: "Filed as synthesis (new connection: X ↔ Y)" or "Filed for reference" or "Quick lookup — not filed."
+| Strength | Criteria | Graph impact |
+|----------|----------|-------------|
+| **strong** | Supported by 2+ independent sources with direct evidence | Added to `related` in both concept articles |
+| **moderate** | Supported by 1 source with clear evidence, or 2+ sources with indirect evidence | Added to `related` in both concept articles with "(moderate)" note |
+| **weak** | Inferred logically but not directly stated in any source | NOT added to concept articles — recorded in the output only, flagged for future confirmation |
+
+This prevents the concept graph from accumulating speculative connections. Only strong and moderate connections update the graph. Weak connections are preserved in outputs for future validation — if a later source confirms a weak connection, `vault compile` or `vault lint` can upgrade it.
+
+7. **Synthesize tier only**: After filing, update the affected concept articles:
+   - Add new entries to `related` fields in both directions (strong and moderate only)
+   - Add a brief note in the Source Evidence section referencing the output
+   - Do NOT add more than 8 `related` entries per concept. If a concept already has 8, only add the new connection if its strength is equal to or greater than the weakest existing one (replace it). This caps graph density and keeps connections meaningful.
+
+8. Update `wiki/index.md` recent outputs section if an output was filed.
+9. Tell the user which tier was applied and why:
+   - Synthesize: "Filed as synthesis — new connection: X ↔ Y (strong: supported by source-a and source-b)"
+   - Record: "Filed for reference — comprehensive analysis across N sources"
+   - Skip: "Quick lookup — not filed" or "Already covered in outputs/existing-slug.md"
 
 **3-tier routing strategy:**
 - Tier 1 (always): `wiki/index.md` — scan for relevance

@@ -79,6 +79,7 @@ No config. No dependencies. No API keys. Just clone and go.
 | **`vault query <question>`** | Ask a question grounded in your vault's knowledge |
 | **`vault process`** | Batch: ingest all web clips + compile everything |
 | **`vault status`** | Print a quick status summary |
+| **`vault agent reset`** | Clear learned retrieval patterns and start fresh |
 
 <br />
 
@@ -89,6 +90,8 @@ After `vault init`:
 ```
 your-project/
   .vault/
+  ├── preferences.md      User preferences (interview-generated)
+  ├── agent.md            Learned retrieval intelligence (auto-maintained)
   ├── Clippings/          Obsidian Web Clipper default folder
   ├── raw/                Ingested sources with YAML frontmatter
   │   └── .manifest.json  Source registry
@@ -243,6 +246,51 @@ This means the concept graph stays clean and high-signal. Each deep query streng
 | **Thin articles** | Concept articles under 100 words | Suggestion |
 | **Duplicates** | Overlapping concept coverage | Warning |
 | **Gap analysis** | Missing topics that would strengthen the knowledge graph | Suggestion |
+| **Agent staleness** | agent.md references deleted concepts or sources | Warning |
+
+<br />
+
+## Smart Agent
+
+The vault includes a self-improving retrieval agent (`.vault/agent.md`) that learns from your queries and gets smarter over time.
+
+```mermaid
+flowchart LR
+    Q["Query"] --> A["agent.md\nsuggests articles"]
+    A --> R["Claude reads\npriority articles"]
+    R --> ANS["Answer"]
+    ANS --> E["Evaluate:\nwhat was useful?"]
+    E --> U["Update agent.md\nreinforce/expand/decay"]
+    U -.->|next session| A
+```
+
+### What it learns
+
+| Section | Max | What it tracks |
+|:--------|:----|:---------------|
+| **Concept Clusters** | 8 | Groups of concepts frequently queried together |
+| **Query Patterns** | 10 | Maps question types to the specific articles that answer them |
+| **Source Signals** | 15 | Which sources are most frequently useful and for what |
+| **Corrections** | 5 | Retrieval mistakes to avoid repeating |
+
+### How it saves tokens
+
+Without the agent, every query scans the full index and reads 6-8 candidate articles. With the agent, Claude jumps directly to the 2-3 articles that matter.
+
+| Vault size | Agent cost | Savings per query | Net savings |
+|:-----------|:-----------|:-----------------|:------------|
+| 3 sources | ~225 tokens | ~500 tokens | ~275 tokens |
+| 8 sources | ~600 tokens | ~2,500 tokens | ~1,900 tokens |
+| 15 sources | ~1,000 tokens | ~4,450 tokens | ~3,450 tokens |
+
+### Safeguards
+
+- **Bounded**: 6,000 character hard ceiling (~1,000 tokens max read cost)
+- **Advisory only**: Never overrides `index.md` — only prioritizes which articles to read first
+- **Cold start threshold**: Not activated until 3+ queries or 5+ compiled sources
+- **Exponential decay**: Every 20 queries, hit counts halve — recent patterns outweigh old ones
+- **Self-cleaning**: `vault lint` detects and removes stale references
+- **Reset**: `vault agent reset` clears all learned patterns if needed
 
 <br />
 

@@ -68,6 +68,9 @@ _No concepts extracted yet. Use `vault compile` after ingesting sources._
 _No queries filed yet._
 EOF
 
+# Empty backlinks index
+echo '{}' > "$VAULT_DIR/wiki/_backlinks.json"
+
 # Create empty agent.md
 cat > "$VAULT_DIR/agent.md" << 'EOF'
 ---

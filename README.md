@@ -75,7 +75,8 @@ No config. No dependencies. No API keys. Just clone and go.
 | **`vault init`** | Initialize a `.vault/` knowledge base in the current project |
 | **`vault ingest <source>`** | Add a raw source — URL, pasted text, or file path |
 | **`vault compile`** | Compile pending sources into wiki summaries and concept articles |
-| **`vault lint`** | Run 7 health checks on the wiki |
+| **`vault lint`** | Run 8 health checks on the wiki |
+| **`vault cleanup`** | Audit and actively fix article quality issues |
 | **`vault query <question>`** | Ask a question grounded in your vault's knowledge |
 | **`vault process`** | Batch: ingest all web clips + compile everything |
 | **`vault status`** | Print a quick status summary |
@@ -90,18 +91,19 @@ After `vault init`:
 ```
 your-project/
   .vault/
-  ├── preferences.md      User preferences (interview-generated)
-  ├── agent.md            Learned retrieval intelligence (auto-maintained)
-  ├── Clippings/          Obsidian Web Clipper default folder
-  ├── raw/                Ingested sources with YAML frontmatter
-  │   └── .manifest.json  Source registry
+  ├── preferences.md       User preferences (interview-generated)
+  ├── agent.md             Learned retrieval intelligence (auto-maintained)
+  ├── Clippings/           Obsidian Web Clipper default folder
+  ├── raw/                 Ingested sources with YAML frontmatter
+  │   └── .manifest.json   Source registry
   ├── wiki/
-  │   ├── index.md        Master routing index
-  │   ├── concepts/       One article per topic (200-500 words)
-  │   ├── summaries/      One summary per source
-  │   ├── outputs/        Query results and lint reports
-  │   └── .state.json     Compilation and lint state
-  └── templates/          Frontmatter skeletons
+  │   ├── index.md         Master routing index
+  │   ├── _backlinks.json  Reverse link index
+  │   ├── concepts/        One article per topic
+  │   ├── summaries/       One summary per source
+  │   ├── outputs/         Query results and lint reports
+  │   └── .state.json      Compilation and lint state
+  └── templates/           Frontmatter skeletons
 ```
 
 <br />
@@ -247,6 +249,24 @@ This means the concept graph stays clean and high-signal. Each deep query streng
 | **Duplicates** | Overlapping concept coverage | Warning |
 | **Gap analysis** | Missing topics that would strengthen the knowledge graph | Suggestion |
 | **Agent staleness** | agent.md references deleted concepts or sources | Warning |
+
+<br />
+
+## Writing Quality
+
+Articles are written to a strict standard — factual, precise, no fluff.
+
+**Rules:**
+- **Tone**: Flat, factual, Wikipedia-style. Let data imply significance.
+- **Avoid**: Peacock words ("groundbreaking", "revolutionary"), editorial voice ("interestingly"), rhetorical questions
+- **Do**: One claim per sentence. Short sentences. Replace adjectives with specifics (numbers, dates, methods).
+- **Max 2 direct quotes** per article — choose the most impactful
+
+**Quality safeguards during compilation:**
+- **Anti-cramming**: If a concept article develops 3+ distinct sub-topics, split into separate articles
+- **Anti-thinning**: Every article must have real substance — stubs with 2 vague sentences are failures
+- **Quality checkpoints**: Every 5 compiled sources, audit the 3 most-updated articles for coherence
+- **`vault cleanup`**: Dedicated command to audit and fix all articles — restructure diary-style articles into thematic ones, split bloated articles, enrich stubs, fix broken links
 
 <br />
 

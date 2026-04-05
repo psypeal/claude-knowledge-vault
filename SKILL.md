@@ -1,6 +1,6 @@
 ---
 name: knowledge-vault
-description: Operate a local knowledge-base vault (.vault/ directory) within any project. This skill should be used when the user says "vault init", "vault ingest", "vault compile", "vault lint", "vault query", "vault process", "vault status", "vault agent reset", "add to vault", "ask the vault", "check the vault", or references the .vault/ directory. The vault ingests raw sources, compiles them into a wiki of summaries and concept articles with cross-references, lints for consistency, and supports grounded Q&A.
+description: Operate a local knowledge-base vault (.vault/ directory) within any project. This skill should be used when the user says "vault init", "vault ingest", "vault compile", "vault lint", "vault query", "vault process", "vault cleanup", "vault status", "vault agent reset", "add to vault", "ask the vault", "check the vault", or references the .vault/ directory. The vault ingests raw sources, compiles them into a wiki of summaries and concept articles with cross-references, lints for consistency, and supports grounded Q&A.
 ---
 
 # Knowledge Vault
@@ -18,6 +18,7 @@ A local, project-scoped knowledge base operated entirely by Claude. Raw sources 
     .manifest.json    Source registry
   wiki/               LLM-compiled knowledge base
     index.md          Master routing index (ALWAYS read first)
+    _backlinks.json   Reverse link index (which articles link to which)
     concepts/         One article per topic
     summaries/        One summary per raw source
     outputs/          Filed query results and lint reports
@@ -123,6 +124,29 @@ related: [other-concept-slug]
 ## Related Concepts
 - [[Other Concept]] — brief explanation of the relationship
 ```
+
+**Structure by source type** — different types call for different article structures:
+
+| Source type | Structure emphasis |
+|:-----------|:------------------|
+| paper | Methods → Findings → Implications |
+| article | Thesis → Evidence → Relevance |
+| repo | Architecture → Key components → Usage |
+| meeting | Decisions → Action items → Context |
+| dataset | Variables → Coverage → Limitations |
+
+### Backlinks Index (`wiki/_backlinks.json`)
+
+Machine-readable reverse link index. Maps each article to every article that links to it.
+
+```json
+{
+  "self-attention": ["transformer-architecture", "multi-head-attention", "positional-encoding"],
+  "transformer-architecture": ["self-attention", "bert-overview"]
+}
+```
+
+Rebuilt during `vault compile` step 3 and `vault cleanup`. Enables Claude to quickly find the most-connected concepts (high backlink count = central topic).
 
 ### Wiki Index (`wiki/index.md`)
 
@@ -267,13 +291,41 @@ Process uncompiled raw sources into wiki articles.
       - If it does not exist: create it with an initial 200-500 word article.
    e. **Cross-reference**: Update `related` fields in affected concept articles. Use `[[wikilinks]]` in article bodies for Obsidian compatibility.
    f. **Mark compiled**: Set `compiled: true` in the raw file's YAML frontmatter. Update the manifest entry.
-3. **Rebuild index**: Regenerate `wiki/index.md` from the manifest and concept file list. Source table sorted by ingestion date (newest first). Concept table sorted alphabetically.
+3. **Rebuild index and backlinks**: Regenerate `wiki/index.md` from the manifest and concept file list. Source table sorted by ingestion date (newest first). Concept table sorted alphabetically. Also rebuild `wiki/_backlinks.json` by scanning all `[[wikilinks]]` across concept articles and summaries.
 4. **Update state**: Update `wiki/.state.json` with new counts and `last_compiled` timestamp.
 5. **Update agent.md**: For each newly compiled source, add or update its entry in the Source Signals section of `.vault/agent.md`. Set initial cited count to 0. Record the source's primary topic domains based on concepts extracted. Increment `vault_stats.total_compiles`. Do NOT create Query Patterns from compilation (patterns are query-driven only).
 
 **Concept slug rules**: Lowercase, hyphens, max 60 chars. Example: "Self-Attention" → `self-attention`.
 
 **Cross-reference rules**: When a concept article mentions another concept that has its own article, use `[[concept-name]]` wikilink syntax. Update the `related` field in both articles.
+
+**Writing quality rules** (apply to all summaries and concept articles):
+
+- **Tone**: Write flat, factual, precise. State what the source found. Let data imply significance.
+- **Avoid**: Peacock words ("groundbreaking", "revolutionary", "profound"), editorial voice ("interestingly", "importantly"), rhetorical questions, qualifiers ("truly", "deeply", "genuine").
+- **Do**: Lead with the key finding. One claim per sentence. Short sentences. Simple past/present tense. Replace adjectives with specifics (numbers, dates, methods).
+- **Quotes**: Maximum 2 direct quotes per article. Choose the most impactful.
+- **Every article has a point**: Not "here are 4 sources that mention X" but "X is important because Y, supported by sources A, B."
+
+**Anti-cramming rule**: If a concept article develops multiple distinct sub-topics (3+ paragraphs on different aspects), split into separate concept articles. Resist the gravitational pull of existing articles — create new pages rather than overstuffing.
+
+**Anti-thinning rule**: Creating articles isn't the win; enriching them is. A stub with 2 vague sentences when 4 sources mention the topic is a failure. Every article must have real substance.
+
+**Length targets**:
+
+| Article type | Target lines |
+|:-------------|:-------------|
+| Concept (1-2 sources) | 20-40 |
+| Concept (3+ sources) | 40-80 |
+| Summary | 30-60 |
+| Output (query result) | 20-50 |
+| Minimum (anything) | 15 |
+
+**Quality checkpoints** (during batch compile of 5+ sources): After every 5 compiled sources, pause and audit:
+1. Rebuild `wiki/_backlinks.json` by scanning all `[[wikilinks]]` across articles
+2. Check for zero new concept articles — if none were created, compilation is likely cramming
+3. Re-read the 3 most-updated concept articles. Verify: theme-based organization (not just appended facts), cross-article connections via wikilinks, coherent narrative (not a chronological dump)
+4. Flag concept articles exceeding 80 lines for potential splitting
 
 ### vault lint
 
@@ -406,6 +458,32 @@ Print a quick summary of the vault state.
 
 1. Run: `bash ~/.claude/skills/knowledge-vault/scripts/vault-status.sh`
 2. Display the output to the user.
+
+### vault cleanup
+
+Audit and enrich all wiki articles. Unlike `vault lint` (which detects issues), cleanup actively **fixes** them.
+
+**Procedure:**
+
+0. **Read `.vault/preferences.md`** — apply domain context to quality judgments.
+1. **Context building**: Read `wiki/index.md`, `wiki/_backlinks.json`, and scan all concept and summary articles. Map the full wiki structure.
+2. **Per-article audit**: For each concept article, evaluate:
+
+| Check | Bad sign | Action |
+|:------|:---------|:-------|
+| **Structure** | Facts appended chronologically, not organized by theme | Restructure around themes, not source order |
+| **Length** | Over 80 lines | Split into sub-concept articles |
+| **Length** | Under 15 lines (stub) | Enrich from raw sources or flag for more data |
+| **Tone** | Peacock words, editorial voice, rhetorical questions | Rewrite to factual, Wikipedia-flat tone |
+| **Quotes** | More than 2 direct quotes | Keep the 2 most impactful, convert others to paraphrases |
+| **Wikilinks** | Missing connections to related concepts | Add `[[wikilinks]]` and update `related` fields |
+| **Coherence** | "Here are 4 sources that mention X" | Rewrite to "X matters because Y, supported by..." |
+
+3. **Split overstuffed articles**: If a concept article has 3+ distinct sub-topics in separate paragraphs, create dedicated concept articles for each. Update cross-references.
+4. **Enrich stubs**: For articles under 15 lines, re-read the raw sources listed in the article's `sources` frontmatter. Extract additional detail to bring the article above the 15-line minimum.
+5. **Fix broken wikilinks**: Scan for `[[links]]` pointing to non-existent articles. Either create the missing article or remove the broken link.
+6. **Rebuild**: Regenerate `wiki/_backlinks.json` and `wiki/index.md`.
+7. Report: "Cleanup complete: X articles restructured, Y stubs enriched, Z articles split, W broken links fixed."
 
 ### vault agent reset
 

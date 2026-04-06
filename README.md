@@ -70,19 +70,7 @@ flowchart LR
 
 No config, no dependencies, no API keys.
 
-### Choose installation scope
-
-By default, `/plugin install` installs at **user scope** (available in all projects). To install for a specific project only, use the interactive UI:
-
-1. Run `/plugin` and go to the **Discover** tab
-2. Select `knowledge-vault` and press Enter
-3. Choose your scope:
-
-| Scope | What it does | Best for |
-|:------|:-------------|:---------|
-| **User** | Active in all projects (default) | If you want the vault available everywhere |
-| **Project** | Active in this project, shared with collaborators | Recommended for team projects |
-| **Local** | Active in this repo for you only, not shared | Personal use in shared repos |
+> **Note on scope:** The plugin installs at **user scope** — this is correct. The plugin is just the tool (commands, skills, scripts). Your actual knowledge base (`.vault/` directory) is always project-local, created per-project when you run `/knowledge-vault:init`. Think of it like `git` — installed globally, but each `.git/` is per-repo.
 
 ### Uninstall
 

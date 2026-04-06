@@ -50,21 +50,31 @@ flowchart LR
 
 ### New install
 
-In Claude Code, run these three commands:
+First, add the marketplace (one time only):
 
 ```bash
 /plugin marketplace add psypeal/claude-knowledge-vault
 ```
 
+Then install — choose your scope:
+
+**Project-level** (recommended — only active in the current project):
+```bash
+/plugin install knowledge-vault@claude-knowledge-vault --scope project
+```
+
+**User-level** (active in all projects):
 ```bash
 /plugin install knowledge-vault@claude-knowledge-vault
 ```
+
+Finally, reload:
 
 ```bash
 /reload-plugins
 ```
 
-That's it. No config, no dependencies, no API keys.
+No config, no dependencies, no API keys.
 
 ### Migrating from v1 (skill)
 

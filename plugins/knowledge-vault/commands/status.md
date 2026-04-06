@@ -1,5 +1,6 @@
 ---
 description: Show vault state summary
+disable-model-invocation: true
 ---
 
-Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/vault-status.sh"` and display the output.
+!bash "${CLAUDE_PLUGIN_ROOT}/scripts/vault-status.sh"

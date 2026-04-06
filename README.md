@@ -51,7 +51,7 @@ flowchart LR
 ### New install
 
 ```bash
-git clone https://github.com/Psypeal/knowledge-vault-plugin.git ~/.claude/plugins/knowledge-vault
+git clone https://github.com/psypeal/claude-knowledge-vault.git ~/.claude/plugins/knowledge-vault
 ```
 
 No config. No dependencies. No API keys. Clone and go.
@@ -65,7 +65,7 @@ Existing vaults are untouched -- the `.vault/` directory format is unchanged.
 rm -rf ~/.claude/skills/knowledge-vault
 
 # 2. Install the plugin
-git clone https://github.com/Psypeal/knowledge-vault-plugin.git ~/.claude/plugins/knowledge-vault
+git clone https://github.com/psypeal/claude-knowledge-vault.git ~/.claude/plugins/knowledge-vault
 
 # 3. Done -- your existing .vault/ directories work as-is
 ```
@@ -173,6 +173,30 @@ The headline feature of v2. `/vault:collect` searches multiple academic database
 4. Selected papers are ingested to `raw/` with full metadata and available text.
 
 The system is elastic and user-controlled. No server is added without your approval. No paper is ingested without your selection.
+
+### Add your own MCP servers
+
+The 5 servers above are pre-configured suggestions, but you can add **any** MCP server as a research source. Just two steps:
+
+1. **Add the server** using `claude mcp add`:
+   ```bash
+   claude mcp add my-server -- npx -y my-mcp-package
+   # or for HTTP servers:
+   claude mcp add --transport http my-server https://example.com/mcp
+   ```
+
+2. **Register it in your vault** by editing `.vault/sources.json`:
+   ```json
+   {
+     "id": "my-server",
+     "name": "My Custom Server",
+     "type": "stdio",
+     "enabled": true,
+     "tools": ["mcp__my-server__search"]
+   }
+   ```
+
+Once registered, `/vault:collect` will include your custom server in batch searches alongside the built-in ones.
 
 ### Collect options
 
@@ -450,7 +474,7 @@ rm -rf ~/.claude/skills/knowledge-vault
 
 **Step 2** -- Install the plugin:
 ```bash
-git clone https://github.com/Psypeal/knowledge-vault-plugin.git ~/.claude/plugins/knowledge-vault
+git clone https://github.com/psypeal/claude-knowledge-vault.git ~/.claude/plugins/knowledge-vault
 ```
 
 **Step 3** -- Verify (in any project with an existing vault):

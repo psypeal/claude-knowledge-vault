@@ -21,7 +21,10 @@ description: Audit and actively fix wiki article quality
 3. **Split overstuffed**: If 3+ distinct sub-topics in separate paragraphs, create dedicated concept articles. Update cross-references.
 4. **Enrich stubs**: For articles under 15 lines, re-read raw sources in `sources` frontmatter. Extract detail to reach 15+ lines.
 5. **Fix broken wikilinks**: `[[links]]` to non-existent articles -- create the missing article or remove the link.
-6. **Rebuild**: Regenerate `wiki/_backlinks.json` and `wiki/index.md`.
+6. **Rebuild** (via script — no need to re-read every file):
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"
+   ```
 7. Report: "Cleanup complete: X articles restructured, Y stubs enriched, Z articles split, W broken links fixed."
 
 **Writing quality**: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/writing-rules.md` for tone, length targets, and structure-by-type guidance.

@@ -21,4 +21,7 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
 
 5. **Set source field**: If the source is a URL, set the `source:` field in the frontmatter.
 
-6. **Update index**: Add the new source to the "Pending Compilation" section of `wiki/index.md`.
+6. **Update index** (via script — no need to read index.md):
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "<type>"
+   ```

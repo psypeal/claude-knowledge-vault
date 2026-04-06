@@ -7,11 +7,15 @@ argument-hint: "[source-slug]"
 
 If `$ARGUMENTS` names a specific source slug, compile only that source. Otherwise compile all pending.
 
-0. Read `.vault/preferences.md` -- apply domain, priority, granularity, and compilation focus to all steps.
-1. Read `raw/.manifest.json`. Identify entries where `compiled: false`.
-2. For each uncompiled source:
-   a. Read the raw file in full.
-   b. **Create summary** at `wiki/summaries/<slug>.md`:
+0. Read `.vault/preferences.md` — apply domain, priority, granularity, and compilation focus.
+1. Read `.vault/raw/.manifest.json`. Identify entries where `compiled: false`.
+2. **Plan phase**: For each pending source, read the raw file and produce a compilation plan:
+   - Which concepts to create vs update
+   - Key evidence to extract
+   - Cross-references to add
+   Group by concept — if multiple sources touch the same concept, merge updates.
+3. **Execute phase**: Work through the plan:
+   a. Write summaries (`wiki/summaries/<slug>.md`, 200-500 words):
       ```yaml
       ---
       title: "Summary: Original Title"
@@ -22,27 +26,29 @@ If `$ARGUMENTS` names a specific source slug, compile only that source. Otherwis
       word_count: 350
       ---
       ```
-      200-500 words. Include key findings, methods, relevance.
-   c. **Extract concepts**: Identify 2-6 key concepts.
-   d. **For each concept**:
-      - Exists: update -- add source evidence, update `sources` list, update `updated` timestamp, expand if new info warrants.
-      - New: create `wiki/concepts/<concept-slug>.md` with 200-500 word article:
-        ```yaml
-        ---
-        title: "Concept Name"
-        aliases: [alt-name]
-        created: "ISO timestamp"
-        updated: "ISO timestamp"
-        sources: [source-slug]
-        related: [other-concept]
-        ---
-        ```
-   e. **Cross-reference**: Update `related` fields in affected concepts. Use `[[wikilinks]]` in bodies.
-   f. **Mark compiled**: Set `compiled: true` in raw file YAML and manifest entry.
-3. **Rebuild index + backlinks**: Regenerate `wiki/index.md` (sources by date desc, concepts alphabetical). Rebuild `wiki/_backlinks.json` by scanning all `[[wikilinks]]`.
-4. **Update state**: Update `wiki/.state.json` with new counts and `last_compiled`.
-5. **Update agent.md**: For each compiled source, add/update Source Signals entry in `.vault/agent.md` (cited: 0, topic domains from extracted concepts). Increment `vault_stats.total_compiles`.
+   b. For each UNIQUE concept in the plan, read the concept file ONCE (if existing), apply ALL updates from ALL sources, write ONCE:
+      ```yaml
+      ---
+      title: "Concept Name"
+      aliases: [alt-name]
+      created: "ISO timestamp"
+      updated: "ISO timestamp"
+      sources: [source-slug]
+      related: [other-concept]
+      ---
+      ```
+   c. Cross-reference: update `related` fields. Use `[[wikilinks]]` in bodies.
+4. **Mark compiled** (via script — no need to re-read raw files):
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-frontmatter.sh" .vault/raw/<slug>.md compiled=true
+   ```
+   Repeat for each compiled source.
+5. **Rebuild index + backlinks + state** (via script — no need to read every file):
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"
+   ```
+6. **Update agent.md**: For each compiled source, add/update Source Signals entry (cited: 0, topic domains). Increment `vault_stats.total_compiles`.
 
-**Concept slugs**: lowercase, hyphens, max 60 chars (e.g., "Self-Attention" -> `self-attention`).
+**Concept slugs**: lowercase, hyphens, max 60 chars.
 
-**Writing quality**: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/writing-rules.md` for tone, length targets, anti-cramming/anti-thinning rules, and quality checkpoints.
+**Writing quality**: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/writing-rules.md` for tone, length targets, anti-cramming/anti-thinning, and quality checkpoints.

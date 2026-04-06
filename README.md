@@ -52,9 +52,15 @@ flowchart LR
 
 In Claude Code, run these three commands:
 
-```
+```bash
 /plugin marketplace add psypeal/claude-knowledge-vault
+```
+
+```bash
 /plugin install knowledge-vault@claude-knowledge-vault
+```
+
+```bash
 /reload-plugins
 ```
 
@@ -71,10 +77,15 @@ rm -rf ~/.claude/skills/knowledge-vault
 
 Then in Claude Code:
 
-```
-# 2. Add marketplace and install plugin
+```bash
 /plugin marketplace add psypeal/claude-knowledge-vault
+```
+
+```bash
 /plugin install knowledge-vault@claude-knowledge-vault
+```
+
+```bash
 /reload-plugins
 
 # 3. Done — your existing .vault/ directories work as-is
@@ -483,9 +494,16 @@ rm -rf ~/.claude/skills/knowledge-vault
 ```
 
 **Step 2** -- Install the plugin (in Claude Code):
-```
+
+```bash
 /plugin marketplace add psypeal/claude-knowledge-vault
+```
+
+```bash
 /plugin install knowledge-vault@claude-knowledge-vault
+```
+
+```bash
 /reload-plugins
 ```
 

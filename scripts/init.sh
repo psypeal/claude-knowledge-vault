@@ -7,7 +7,7 @@ set -euo pipefail
 
 TARGET="${1:-.}"
 VAULT_DIR="$TARGET/.vault"
-SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [ -d "$VAULT_DIR" ]; then
     echo "Vault already exists at $VAULT_DIR"
@@ -53,7 +53,7 @@ updated: null
 
 ## Source Summaries (0 compiled)
 
-_No sources compiled yet. Use `vault ingest` to add sources._
+_No sources compiled yet. Use `/vault:ingest` to add sources._
 
 ## Pending Compilation (0)
 
@@ -61,7 +61,7 @@ _No sources pending._
 
 ## Concepts (0)
 
-_No concepts extracted yet. Use `vault compile` after ingesting sources._
+_No concepts extracted yet. Use `/vault:compile` after ingesting sources._
 
 ## Recent Outputs
 
@@ -70,6 +70,15 @@ EOF
 
 # Empty backlinks index
 echo '{}' > "$VAULT_DIR/wiki/_backlinks.json"
+
+# Empty sources config
+cat > "$VAULT_DIR/sources.json" << 'EOF'
+{
+  "version": 1,
+  "configured_sources": [],
+  "last_configured": null
+}
+EOF
 
 # Create empty agent.md
 cat > "$VAULT_DIR/agent.md" << 'EOF'
@@ -101,9 +110,9 @@ _No source signals yet._
 _No corrections logged._
 EOF
 
-# Copy templates from skill assets
-if [ -d "$SKILL_DIR/assets/templates" ]; then
-    cp "$SKILL_DIR/assets/templates"/*.md "$VAULT_DIR/templates/" 2>/dev/null || true
+# Copy templates from plugin assets
+if [ -d "$PLUGIN_DIR/assets/templates" ]; then
+    cp "$PLUGIN_DIR/assets/templates"/*.md "$VAULT_DIR/templates/" 2>/dev/null || true
 fi
 
 # Append CLAUDE.md addendum if not already present
@@ -111,10 +120,10 @@ CLAUDE_MD="$TARGET/CLAUDE.md"
 if [ -f "$CLAUDE_MD" ]; then
     if ! grep -q "## Knowledge Vault" "$CLAUDE_MD" 2>/dev/null; then
         echo "" >> "$CLAUDE_MD"
-        cat "$SKILL_DIR/assets/VAULT-CLAUDE.md" >> "$CLAUDE_MD"
+        cat "$PLUGIN_DIR/assets/VAULT-CLAUDE.md" >> "$CLAUDE_MD"
     fi
 else
-    cat "$SKILL_DIR/assets/VAULT-CLAUDE.md" > "$CLAUDE_MD"
+    cat "$PLUGIN_DIR/assets/VAULT-CLAUDE.md" > "$CLAUDE_MD"
 fi
 
 echo "Vault initialized at $VAULT_DIR/"

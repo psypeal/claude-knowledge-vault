@@ -1,6 +1,7 @@
 ---
 name: knowledge-vault
-description: Operate a local knowledge-base vault (.vault/ directory) within any project. This skill should be used when the user says "vault init", "vault ingest", "vault compile", "vault lint", "vault query", "vault process", "vault cleanup", "vault status", "vault agent reset", "add to vault", "ask the vault", "check the vault", or references the .vault/ directory. The vault ingests raw sources, compiles them into a wiki of summaries and concept articles with cross-references, lints for consistency, and supports grounded Q&A.
+description: Operate a local knowledge-base vault (.vault/ directory) within any project. This skill should be used when the user says "vault init", "vault ingest", "vault compile", "vault lint", "vault query", "vault process", "vault cleanup", "vault collect", "vault setup-sources", "vault status", "vault agent reset", "add to vault", "ask the vault", "check the vault", or references the .vault/ directory. The vault ingests raw sources, compiles them into a wiki of summaries and concept articles with cross-references, lints for consistency, and supports grounded Q&A.
+user-invocable: false
 ---
 
 # Knowledge Vault
@@ -13,6 +14,7 @@ A local, project-scoped knowledge base operated entirely by Claude. Raw sources 
 .vault/
   preferences.md      User preferences (interview-generated, manually editable)
   agent.md            Learned retrieval intelligence (auto-maintained)
+  sources.json        Configured research MCP servers
   Clippings/          Obsidian Web Clipper landing zone (default folder)
   raw/                Ingested sources with YAML frontmatter
     .manifest.json    Source registry
@@ -125,16 +127,6 @@ related: [other-concept-slug]
 - [[Other Concept]] — brief explanation of the relationship
 ```
 
-**Structure by source type** — different types call for different article structures:
-
-| Source type | Structure emphasis |
-|:-----------|:------------------|
-| paper | Methods → Findings → Implications |
-| article | Thesis → Evidence → Relevance |
-| repo | Architecture → Key components → Usage |
-| meeting | Decisions → Action items → Context |
-| dataset | Variables → Coverage → Limitations |
-
 ### Backlinks Index (`wiki/_backlinks.json`)
 
 Machine-readable reverse link index. Maps each article to every article that links to it.
@@ -187,7 +179,7 @@ Four bounded sections:
 | Section | Max entries | Purpose |
 |---------|-----------|---------|
 | **Concept Clusters** | 8 | Groups of concepts frequently co-accessed in queries |
-| **Query Patterns** | 10 | Maps question keywords → specific articles that answer them |
+| **Query Patterns** | 10 | Maps question keywords to specific articles that answer them |
 | **Source Signals** | 15 | Tracks which sources are most frequently useful and for what topics |
 | **Corrections** | 5 (FIFO) | Logs retrieval mistakes to prevent repeating them |
 
@@ -208,14 +200,14 @@ Initialize a vault in the current project with personalized preferences.
 
 **Procedure:**
 
-1. Run: `bash ~/.claude/skills/knowledge-vault/scripts/init.sh`
+1. Run: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/init.sh"`
 2. This creates `.vault/` with empty structure and appends instructions to CLAUDE.md.
 3. **Interview the user** to configure `.vault/preferences.md`. Ask these questions one at a time, adapting based on answers. Skip questions that are obvious from project context:
 
    a. **Domain**: "What domain is this vault for?" (e.g., ML research, biomedical science, web development, general)
    b. **Source types**: "What sources will you mainly use?" (papers, articles, code repos, meeting notes, web clips)
    c. **Priority rules**: "Any priority for sources?" (e.g., peer-reviewed over blog posts, recent over old, primary data over reviews)
-   d. **Concept detail**: "How granular should concepts be?" (broad overview — fewer, larger articles / balanced / granular — many specific articles)
+   d. **Concept detail**: "How granular should concepts be?" (broad overview -- fewer, larger articles / balanced / granular -- many specific articles)
    e. **Compilation focus**: "Any special instructions for how sources should be summarized?" (e.g., always extract methodology, focus on clinical relevance, emphasize code architecture)
 
    If the user says "skip" or wants defaults, generate a sensible preferences file based on the project context.
@@ -232,7 +224,7 @@ updated: "ISO timestamp"
 [domain from interview]
 
 ## Source Priority
-[priority rules — ranked list]
+[priority rules -- ranked list]
 
 ## Concept Granularity
 [broad | balanced | granular]
@@ -245,6 +237,7 @@ updated: "ISO timestamp"
 ```
 
 5. Confirm to the user that the vault is ready and suggest opening `.vault/` in Obsidian.
+6. Suggest running `/vault:setup-sources` to configure research MCP servers for academic collection.
 
 **Preferences file contract:**
 - Claude MUST read `.vault/preferences.md` at the start of every vault operation (compile, lint, query, process).
@@ -260,15 +253,15 @@ Add a raw source to the vault. Accepts: URL, file path, pasted text, or MCP tool
 **Procedure:**
 
 1. Determine the source type:
-   - URL → fetch with WebFetch, set `type: clip` or `type: article`
-   - PubMed/Scholar MCP result → set `type: paper`
-   - Pasted text → set `type: notes`
-   - File path → read the file, infer type from context
+   - URL -> fetch with WebFetch, set `type: clip` or `type: article`
+   - PubMed/Scholar MCP result -> set `type: paper`
+   - Pasted text -> set `type: notes`
+   - File path -> read the file, infer type from context
 2. Generate a slug from the title (lowercase, hyphens, max 60 chars).
-3. Run: `bash ~/.claude/skills/knowledge-vault/scripts/ingest.sh "<slug>" "<title>" "<type>" [tags...]`
+3. Run: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ingest.sh" "<slug>" "<title>" "<type>" [tags...]`
 4. Fill in the content body of the created `raw/<slug>.md` using the Write or Edit tool.
 5. If the source is a URL, set the `source:` field in the frontmatter.
-6. Update `wiki/index.md` — add the new source to the "Pending Compilation" section.
+6. Update `wiki/index.md` -- add the new source to the "Pending Compilation" section.
 
 **If using a template:** Check `.vault/templates/` for a matching type. Use its structure for the content body.
 
@@ -278,7 +271,7 @@ Process uncompiled raw sources into wiki articles.
 
 **Procedure:**
 
-0. **Read `.vault/preferences.md`** — apply domain, priority, granularity, and compilation focus to all steps below.
+0. **Read `.vault/preferences.md`** -- apply domain, priority, granularity, and compilation focus to all steps below.
 1. Read `raw/.manifest.json`. Identify entries where `compiled: false`.
    - If the user names a specific source, compile only that one.
    - Otherwise, compile all pending.
@@ -287,7 +280,7 @@ Process uncompiled raw sources into wiki articles.
    b. **Create summary**: Write `wiki/summaries/<slug>.md` (200-500 words). Include key findings, methods, relevance. Set `concepts_extracted` in frontmatter.
    c. **Extract concepts**: Identify 2-6 key concepts from the source.
    d. **For each concept**:
-      - If `wiki/concepts/<concept-slug>.md` exists: update it — add new source evidence, update the `sources` list, update `updated` timestamp, expand the article if the new source adds significant information.
+      - If `wiki/concepts/<concept-slug>.md` exists: update it -- add new source evidence, update the `sources` list, update `updated` timestamp, expand the article if the new source adds significant information.
       - If it does not exist: create it with an initial 200-500 word article.
    e. **Cross-reference**: Update `related` fields in affected concept articles. Use `[[wikilinks]]` in article bodies for Obsidian compatibility.
    f. **Mark compiled**: Set `compiled: true` in the raw file's YAML frontmatter. Update the manifest entry.
@@ -295,37 +288,11 @@ Process uncompiled raw sources into wiki articles.
 4. **Update state**: Update `wiki/.state.json` with new counts and `last_compiled` timestamp.
 5. **Update agent.md**: For each newly compiled source, add or update its entry in the Source Signals section of `.vault/agent.md`. Set initial cited count to 0. Record the source's primary topic domains based on concepts extracted. Increment `vault_stats.total_compiles`. Do NOT create Query Patterns from compilation (patterns are query-driven only).
 
-**Concept slug rules**: Lowercase, hyphens, max 60 chars. Example: "Self-Attention" → `self-attention`.
+**Concept slug rules**: Lowercase, hyphens, max 60 chars. Example: "Self-Attention" -> `self-attention`.
 
 **Cross-reference rules**: When a concept article mentions another concept that has its own article, use `[[concept-name]]` wikilink syntax. Update the `related` field in both articles.
 
-**Writing quality rules** (apply to all summaries and concept articles):
-
-- **Tone**: Write flat, factual, precise. State what the source found. Let data imply significance.
-- **Avoid**: Peacock words ("groundbreaking", "revolutionary", "profound"), editorial voice ("interestingly", "importantly"), rhetorical questions, qualifiers ("truly", "deeply", "genuine").
-- **Do**: Lead with the key finding. One claim per sentence. Short sentences. Simple past/present tense. Replace adjectives with specifics (numbers, dates, methods).
-- **Quotes**: Maximum 2 direct quotes per article. Choose the most impactful.
-- **Every article has a point**: Not "here are 4 sources that mention X" but "X is important because Y, supported by sources A, B."
-
-**Anti-cramming rule**: If a concept article develops multiple distinct sub-topics (3+ paragraphs on different aspects), split into separate concept articles. Resist the gravitational pull of existing articles — create new pages rather than overstuffing.
-
-**Anti-thinning rule**: Creating articles isn't the win; enriching them is. A stub with 2 vague sentences when 4 sources mention the topic is a failure. Every article must have real substance.
-
-**Length targets**:
-
-| Article type | Target lines |
-|:-------------|:-------------|
-| Concept (1-2 sources) | 20-40 |
-| Concept (3+ sources) | 40-80 |
-| Summary | 30-60 |
-| Output (query result) | 20-50 |
-| Minimum (anything) | 15 |
-
-**Quality checkpoints** (during batch compile of 5+ sources): After every 5 compiled sources, pause and audit:
-1. Rebuild `wiki/_backlinks.json` by scanning all `[[wikilinks]]` across articles
-2. Check for zero new concept articles — if none were created, compilation is likely cramming
-3. Re-read the 3 most-updated concept articles. Verify: theme-based organization (not just appended facts), cross-article connections via wikilinks, coherent narrative (not a chronological dump)
-4. Flag concept articles exceeding 80 lines for potential splitting
+**Writing quality**: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/writing-rules.md` for tone, length targets, anti-cramming/anti-thinning rules, and quality checkpoints.
 
 ### vault lint
 
@@ -333,7 +300,7 @@ Run 8 health checks on the wiki.
 
 **Procedure:**
 
-0. **Read `.vault/preferences.md`** — preferences inform what counts as "thin", "stale", or a priority gap.
+0. **Read `.vault/preferences.md`** -- preferences inform what counts as "thin", "stale", or a priority gap.
 1. Read `wiki/index.md` and scan all concept and summary articles.
 2. Run these checks:
 
@@ -360,7 +327,7 @@ Answer a question grounded in the vault's knowledge. Automatically classifies ea
 **Procedure:**
 
 0. **Read `.vault/preferences.md`**. If `.vault/agent.md` exists AND (`vault_stats.total_queries >= 3` OR `wiki/.state.json` stats.source_count >= 5), also read `.vault/agent.md`.
-0.5. **Agent-directed pre-routing** (only if agent.md was read): Before reading index.md, scan agent.md Query Patterns for keyword matches against the user's question. If a pattern matches, note its suggested articles as priority reads. Also check Concept Clusters — if the query touches a concept in a cluster, plan to read the full cluster. Agent.md is advisory, NOT authoritative — always still read index.md in the next step.
+0.5. **Agent-directed pre-routing** (only if agent.md was read): Before reading index.md, scan agent.md Query Patterns for keyword matches against the user's question. If a pattern matches, note its suggested articles as priority reads. Also check Concept Clusters -- if the query touches a concept in a cluster, plan to read the full cluster. Agent.md is advisory, NOT authoritative -- always still read index.md in the next step.
 1. **Read index first**: Read `wiki/index.md` to understand what the vault contains.
 2. **Identify relevant articles**: From the index tables, pick summaries and concepts that are relevant to the question.
 3. **Read articles**: Read the identified summaries and concept articles (Tier 2). Only go to raw sources (Tier 3) if summaries lack sufficient detail.
@@ -400,9 +367,9 @@ new_connections:                              # synthesize tier only
 |----------|----------|-------------|
 | **strong** | Supported by 2+ independent sources with direct evidence | Added to `related` in both concept articles |
 | **moderate** | Supported by 1 source with clear evidence, or 2+ sources with indirect evidence | Added to `related` in both concept articles with "(moderate)" note |
-| **weak** | Inferred logically but not directly stated in any source | NOT added to concept articles — recorded in the output only, flagged for future confirmation |
+| **weak** | Inferred logically but not directly stated in any source | NOT added to concept articles -- recorded in the output only, flagged for future confirmation |
 
-This prevents the concept graph from accumulating speculative connections. Only strong and moderate connections update the graph. Weak connections are preserved in outputs for future validation — if a later source confirms a weak connection, `vault compile` or `vault lint` can upgrade it.
+This prevents the concept graph from accumulating speculative connections. Only strong and moderate connections update the graph. Weak connections are preserved in outputs for future validation -- if a later source confirms a weak connection, `vault compile` or `vault lint` can upgrade it.
 
 7. **Synthesize tier only**: After filing, update the affected concept articles:
    - Add new entries to `related` fields in both directions (strong and moderate only)
@@ -411,30 +378,16 @@ This prevents the concept graph from accumulating speculative connections. Only 
 
 8. Update `wiki/index.md` recent outputs section if an output was filed.
 9. Tell the user which tier was applied and why:
-   - Synthesize: "Filed as synthesis — new connection: X ↔ Y (strong: supported by source-a and source-b)"
-   - Record: "Filed for reference — comprehensive analysis across N sources"
-   - Skip: "Quick lookup — not filed" or "Already covered in outputs/existing-slug.md"
+   - Synthesize: "Filed as synthesis -- new connection: X <-> Y (strong: supported by source-a and source-b)"
+   - Record: "Filed for reference -- comprehensive analysis across N sources"
+   - Skip: "Quick lookup -- not filed" or "Already covered in outputs/existing-slug.md"
 
-**Post-query agent.md update** (after every query):
-
-After composing the answer, update `.vault/agent.md`:
-
-a. **Pattern reinforcement**: If a Query Pattern's suggested articles matched what was actually useful, increment its hit count.
-b. **Pattern expansion**: If useful articles were not predicted by any pattern, update the closest matching pattern or create a new one (if under 10 slots).
-c. **Pattern decay**: If a pattern's suggested articles were read but not useful, decrement its hit count. At 0 hits, evict the pattern.
-d. **Cluster discovery**: If 2+ concepts were co-accessed and don't already share a cluster, create or merge into a cluster (if under 8 slots).
-e. **Source signal update**: Increment cited count for any source whose summary or raw content contributed to the answer.
-f. **Correction logging**: If agent.md routing led to a wrong path (Claude had to discard and re-route), log the correction (max 5, FIFO).
-g. **Stats update**: Increment `total_queries`. If no Tier 3 reads were needed, increment `cache_hits`. Otherwise increment `tier3_fallbacks`.
-h. **Decay check**: Every 20 queries (when `total_queries % 20 == 0`), divide all hit counts by 2 (integer division). This implements exponential decay — recent patterns outweigh old ones.
-i. **Eviction**: If any section is at capacity and a new entry is needed, evict the entry with lowest hit/cited count. If tied, evict the oldest.
-
-Write the updated `.vault/agent.md`.
+**Post-query agent.md update**: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/agent-update-rules.md` for the full post-query update procedure (steps a through i).
 
 **3-tier routing strategy:**
-- Tier 1 (always): `wiki/index.md` — scan for relevance
-- Tier 2 (on demand): `wiki/summaries/` and `wiki/concepts/` — read relevant articles
-- Tier 3 (rarely): `raw/` — read full source only when needed
+- Tier 1 (always): `wiki/index.md` -- scan for relevance
+- Tier 2 (on demand): `wiki/summaries/` and `wiki/concepts/` -- read relevant articles
+- Tier 3 (rarely): `raw/` -- read full source only when needed
 
 ### vault process
 
@@ -442,12 +395,12 @@ Batch operation: ingest all Clippings, then compile all pending.
 
 **Procedure:**
 
-0. **Read `.vault/preferences.md`** — apply preferences to ingestion and compilation steps.
+0. **Read `.vault/preferences.md`** -- apply preferences to ingestion and compilation steps.
 1. Scan `.vault/Clippings/` for `.md` files (Obsidian Web Clipper's default folder).
 2. For each file:
    a. Read the file. Extract title and metadata from YAML frontmatter (Obsidian Web Clipper format).
    b. Generate a slug from the title.
-   c. Move the file to `raw/<slug>.md` (ensure frontmatter matches the vault schema — reformat if needed).
+   c. Move the file to `raw/<slug>.md` (ensure frontmatter matches the vault schema -- reformat if needed).
    d. Add entry to `raw/.manifest.json`.
 3. After all clippings are ingested, run the **vault compile** procedure on all pending sources.
 4. Report: "Processed N clippings, compiled M sources, extracted K new concepts."
@@ -456,7 +409,7 @@ Batch operation: ingest all Clippings, then compile all pending.
 
 Print a quick summary of the vault state.
 
-1. Run: `bash ~/.claude/skills/knowledge-vault/scripts/vault-status.sh`
+1. Run: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/vault-status.sh"`
 2. Display the output to the user.
 
 ### vault cleanup
@@ -465,7 +418,7 @@ Audit and enrich all wiki articles. Unlike `vault lint` (which detects issues), 
 
 **Procedure:**
 
-0. **Read `.vault/preferences.md`** — apply domain context to quality judgments.
+0. **Read `.vault/preferences.md`** -- apply domain context to quality judgments.
 1. **Context building**: Read `wiki/index.md`, `wiki/_backlinks.json`, and scan all concept and summary articles. Map the full wiki structure.
 2. **Per-article audit**: For each concept article, evaluate:
 
@@ -484,6 +437,8 @@ Audit and enrich all wiki articles. Unlike `vault lint` (which detects issues), 
 5. **Fix broken wikilinks**: Scan for `[[links]]` pointing to non-existent articles. Either create the missing article or remove the broken link.
 6. **Rebuild**: Regenerate `wiki/_backlinks.json` and `wiki/index.md`.
 7. Report: "Cleanup complete: X articles restructured, Y stubs enriched, Z articles split, W broken links fixed."
+
+**Writing quality**: Read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/writing-rules.md` for tone, length targets, and structure-by-type guidance.
 
 ### vault agent reset
 
@@ -505,7 +460,7 @@ The `.vault/` directory is designed as an Obsidian vault:
 - Graph View visualizes concept connections
 - Dataview plugin can query frontmatter (e.g., `TABLE title, type, compiled FROM "raw"`)
 
-Obsidian Web Clipper saves to `Clippings/` by default — no configuration needed. Just set the clipper's vault to the project's `.vault/` directory and clips land in the right place automatically.
+Obsidian Web Clipper saves to `Clippings/` by default -- no configuration needed. Just set the clipper's vault to the project's `.vault/` directory and clips land in the right place automatically.
 
 ### Telegram Notifications
 
@@ -516,7 +471,7 @@ After long operations (compile with 3+ sources, lint), notify via:
 
 ### MCP Research Tools
 
-When ingesting from PubMed or Scholar-Gateway MCP tools, set `type: paper` and populate the `source` field with the DOI or PubMed URL. Use the article metadata for tags.
+When ingesting from PubMed or Scholar-Gateway MCP tools, set `type: paper` and populate the `source` field with the DOI or PubMed URL. Use the article metadata for tags. See the **mcp-source-configs** skill for server-by-server details.
 
 ### Git Commits
 

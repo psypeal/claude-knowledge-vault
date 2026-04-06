@@ -11,6 +11,8 @@ fi
 
 MANIFEST="$VAULT_DIR/raw/.manifest.json"
 STATE="$VAULT_DIR/wiki/.state.json"
+AGENT_FILE="$VAULT_DIR/agent.md"
+SOURCES_FILE="$VAULT_DIR/sources.json"
 
 echo "=== Knowledge Vault Status ==="
 echo ""
@@ -64,14 +66,7 @@ fi
 
 echo ""
 
-# Inbox count
-CLIPPINGS_COUNT=$(find "$VAULT_DIR/Clippings" -name "*.md" 2>/dev/null | wc -l)
-echo "Clippings:  $CLIPPINGS_COUNT items waiting"
-
-echo ""
-
 # Agent stats
-AGENT_FILE="$VAULT_DIR/agent.md"
 if [ -f "$AGENT_FILE" ]; then
     python3 -c "
 import re
@@ -79,43 +74,28 @@ import re
 with open('$AGENT_FILE', 'r') as f:
     content = f.read()
 
-# Extract YAML frontmatter
-fm_match = re.search(r'^---\n(.*?)\n---', content, re.DOTALL)
-if not fm_match:
-    print('Agent:      no frontmatter found')
-    exit()
+# Extract frontmatter values
+tq = int(re.search(r'total_queries:\s*(\d+)', content).group(1)) if re.search(r'total_queries:\s*(\d+)', content) else 0
+ch = int(re.search(r'cache_hits:\s*(\d+)', content).group(1)) if re.search(r'cache_hits:\s*(\d+)', content) else 0
+tf = int(re.search(r'tier3_fallbacks:\s*(\d+)', content).group(1)) if re.search(r'tier3_fallbacks:\s*(\d+)', content) else 0
 
-fm = fm_match.group(1)
-
-def get_val(key):
-    m = re.search(rf'{key}:\s*(\d+)', fm)
-    return int(m.group(1)) if m else 0
-
-total_queries = get_val('total_queries')
-cache_hits = get_val('cache_hits')
-tier3_fallbacks = get_val('tier3_fallbacks')
-
-if total_queries == 0:
+if tq == 0:
     print('Agent:      inactive (no queries yet)')
 else:
-    hit_rate = round(cache_hits / total_queries * 100)
-    print(f'Agent:      active ({total_queries} queries, {hit_rate}% cache hit rate)')
+    hit_rate = round(ch / tq * 100) if tq > 0 else 0
+    print(f'Agent:      active ({tq} queries, {hit_rate}% cache hit rate)')
 
-    # Count entries in each section
     def count_entries(section_name):
-        pat = rf'## {section_name}\n(.*?)(?=\n## |\Z)'
-        m = re.search(pat, content, re.DOTALL)
-        if not m:
+        pattern = rf'## {section_name}\n(.*?)(?=\n## |\Z)'
+        match = re.search(pattern, content, re.DOTALL)
+        if not match:
             return 0
-        body = m.group(1).strip()
-        if body.startswith('_') and body.endswith('_'):
-            return 0
-        return len([l for l in body.split('\n') if l.strip() and not l.strip().startswith('#')])
+        lines = [l for l in match.group(1).strip().split('\n') if l.startswith('- ')]
+        return len(lines)
 
     clusters = count_entries('Concept Clusters')
     patterns = count_entries('Query Patterns')
     signals = count_entries('Source Signals')
-
     print(f'  Clusters: {clusters}/8')
     print(f'  Patterns: {patterns}/10')
     print(f'  Signals:  {signals}/15')
@@ -123,6 +103,34 @@ else:
 else
     echo "Agent:      not initialized"
 fi
+
+echo ""
+
+# Research sources
+if [ -f "$SOURCES_FILE" ]; then
+    python3 -c "
+import json
+
+with open('$SOURCES_FILE', 'r') as f:
+    s = json.load(f)
+
+sources = s.get('configured_sources', [])
+enabled = [x for x in sources if x.get('enabled')]
+if enabled:
+    names = ', '.join(x['name'] for x in enabled)
+    print(f'Sources:    {len(enabled)} configured ({names})')
+else:
+    print('Sources:    none configured (run /vault:setup-sources)')
+"
+else
+    echo "Sources:    none configured"
+fi
+
+echo ""
+
+# Clippings count
+CLIPPINGS_COUNT=$(find "$VAULT_DIR/Clippings" -name "*.md" 2>/dev/null | wc -l)
+echo "Clippings:  $CLIPPINGS_COUNT items waiting"
 
 echo ""
 echo "==========================="

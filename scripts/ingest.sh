@@ -1,17 +1,13 @@
 #!/bin/bash
 # knowledge-vault: Create a raw source file and update the manifest.
 # Usage: bash ingest.sh <slug> <title> <type> [tags...]
-#   slug:  lowercase-hyphenated identifier (e.g., "attention-is-all-you-need")
-#   title: human-readable title (e.g., "Attention Is All You Need")
-#   type:  paper|article|repo|dataset|meeting|notes|clip
-#   tags:  optional space-separated tags
 
 set -euo pipefail
 
 VAULT_DIR=".vault"
 
 if [ ! -d "$VAULT_DIR" ]; then
-    echo "Error: No .vault/ directory found. Run 'vault init' first."
+    echo "Error: No .vault/ directory found. Run /vault:init first."
     exit 1
 fi
 
@@ -49,7 +45,7 @@ compiled: false
 
 FRONTMATTER
 
-# Update manifest using python3 (available on most systems)
+# Update manifest
 python3 -c "
 import json, sys
 

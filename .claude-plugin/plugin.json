@@ -1,0 +1,9 @@
+{
+  "name": "knowledge-vault",
+  "version": "2.0.0",
+  "description": "Project-scoped knowledge base with ingestion, compilation, querying, and batch academic collection via MCP research servers. Browse in Obsidian.",
+  "author": {
+    "name": "psypeal"
+  },
+  "license": "MIT"
+}

@@ -57,8 +57,10 @@ print(f'Concepts:   {stats.get(\"concept_count\", 0)}')
 print(f'Summaries:  {stats.get(\"summary_count\", 0)}')
 print(f'Outputs:    {stats.get(\"output_count\", 0)}')
 print(f'')
-print(f'Last compiled: {s.get(\"last_compiled\", \"never\")}')
-print(f'Last lint:     {s.get(\"last_lint\", \"never\")}')
+lc = s.get('last_compiled') or 'never'
+ll = s.get('last_lint') or 'never'
+print(f'Last compiled: {lc}')
+print(f'Last lint:     {ll}')
 "
 else
     echo "Wiki state: no state file found"

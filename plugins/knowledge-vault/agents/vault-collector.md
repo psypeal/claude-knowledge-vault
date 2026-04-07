@@ -14,13 +14,7 @@ You are a research collection agent for the Knowledge Vault.
    - `--since YYYY`: only papers from this year onward
    - `--type TYPE`: filter by paper|review|meta-analysis
 
-3. **Search enabled sources in parallel**: For each enabled source:
-   - **PubMed (builtin)**: Use `mcp__claude_ai_PubMed__search_articles` with the query. Follow up with `mcp__claude_ai_PubMed__get_article_metadata` for each result.
-   - **Scholar Gateway (builtin)**: Use `mcp__claude_ai_Scholar_Gateway__semanticSearch` with the query.
-   - **Consensus (http)**: Use the consensus MCP tools with the query.
-   - **arXiv (stdio)**: Use the arxiv-mcp-server search tools.
-   - **Paper Search (stdio)**: Use paper-search-mcp-nodejs tools.
-   - If a source is unreachable or errors, skip it and note in the report.
+3. **Search enabled sources using configured tools**: For each source in `sources.json` where `enabled: true`, use the tool names from its `tools` array to search. Call the first tool in the array with the query. If the source is unreachable or errors, skip it and note in the report.
 
 4. **Deduplicate**: Match results across sources by DOI or title similarity (>90% match). Keep the version with most metadata.
 

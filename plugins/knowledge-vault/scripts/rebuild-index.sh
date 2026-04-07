@@ -110,8 +110,13 @@ for cf in sorted(concept_files):
 concept_rows.sort(key=lambda x: x['title'].lower())
 
 # --- Scan outputs ---
-output_rows = []
 output_files = glob.glob(f"{wiki}/outputs/*.md")
+# Filter out lint reports from output count
+non_lint_outputs = [f for f in output_files if not os.path.basename(f).startswith('lint-')]
+total_output_count = len(non_lint_outputs)
+
+# Display only 5 most recent, but count ALL for stats
+output_rows = []
 for of in sorted(output_files, key=os.path.getmtime, reverse=True)[:5]:
     fm = parse_frontmatter(of)
     slug = os.path.splitext(os.path.basename(of))[0]
@@ -216,9 +221,11 @@ state['stats'] = {
     'pending_count': len(pending_sources),
     'concept_count': len(concept_rows),
     'summary_count': len(compiled_sources),
-    'output_count': len(output_rows)
+    'output_count': total_output_count
 }
-state['last_compiled'] = now
+# Do NOT overwrite last_compiled here — that is set only by the compile command
+# via update-state.sh. Rebuild is called by lint, cleanup, and compile alike.
+state['last_rebuilt'] = now
 
 with open(state_path, 'w') as f:
     json.dump(state, f, indent=2)

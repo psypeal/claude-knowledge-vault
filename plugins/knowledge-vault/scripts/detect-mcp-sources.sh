@@ -22,7 +22,8 @@ if os.path.exists(settings_path):
             'id': 'pubmed-builtin',
             'name': 'PubMed (Claude.ai)',
             'type': 'builtin',
-            'status': 'active',
+            'enabled': True,
+            'tools': [p for p in allowed if 'PubMed' in str(p)],
             'add_command': None
         })
 
@@ -32,7 +33,8 @@ if os.path.exists(settings_path):
             'id': 'scholar-gateway',
             'name': 'Scholar Gateway (Claude.ai)',
             'type': 'builtin',
-            'status': 'active',
+            'enabled': True,
+            'tools': [p for p in allowed if 'Scholar' in str(p) or 'scholar' in str(p)],
             'add_command': None
         })
 
@@ -48,7 +50,8 @@ for claude_json_path in ['.claude.json', os.path.expanduser('~/.claude.json')]:
                     'id': name,
                     'name': name,
                     'type': 'stdio',
-                    'status': 'active',
+                    'enabled': True,
+                    'tools': [f'mcp__{name}__*'],
                     'add_command': None
                 })
 

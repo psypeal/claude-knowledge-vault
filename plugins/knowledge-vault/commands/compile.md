@@ -48,6 +48,7 @@ If `$ARGUMENTS` names a specific source slug, compile only that source. Otherwis
 5. **Rebuild index + backlinks + state** (via script — no need to read every file):
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-state.sh" .vault last_compiled="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
    ```
 6. **Update agent.md**: For each compiled source, add/update Source Signals entry (cited: 0, topic domains). Increment `vault_stats.total_compiles`.
 

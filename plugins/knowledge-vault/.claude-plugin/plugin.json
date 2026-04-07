@@ -1,6 +1,6 @@
 {
   "name": "knowledge-vault",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Project-scoped knowledge base with ingestion, compilation, querying, and batch academic collection via MCP research servers. Browse in Obsidian.",
   "author": {
     "name": "psypeal"

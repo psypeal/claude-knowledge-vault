@@ -72,6 +72,22 @@ flowchart LR
 
 No config, no dependencies, no API keys.
 
+### Update
+
+When a new version is released, refresh the marketplace to pull the latest:
+
+```bash
+/plugin marketplace update claude-knowledge-vault
+```
+
+Then reload so the new commands, scripts, and fixes take effect:
+
+```bash
+/reload-plugins
+```
+
+If auto-update is enabled for this marketplace, the plugin updates automatically during the marketplace refresh. Otherwise, toggle it via `/plugin` → **Marketplaces** → select `claude-knowledge-vault` → **Enable auto-update**.
+
 ### Uninstall
 
 ```bash

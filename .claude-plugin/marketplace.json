@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Knowledge Vault plugin for Claude Code — project-scoped knowledge base with academic collection via MCP, including Zotero integration",
-    "version": "2.1.0"
+    "version": "2.1.1"
   },
   "plugins": [
     {
       "name": "knowledge-vault",
       "description": "Project-scoped knowledge base with ingestion (URL, Zotero, PubMed/Scholar), compilation, querying, and Obsidian browsing.",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "author": {
         "name": "psypeal"
       },

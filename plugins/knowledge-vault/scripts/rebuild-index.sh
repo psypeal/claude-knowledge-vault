@@ -15,7 +15,7 @@ STATE="$WIKI/.state.json"
 export VAULT_DIR
 
 python3 << 'PYEOF'
-import json, os, re, glob
+import json, os, re, sys, glob
 from datetime import datetime, timezone
 
 vault = os.environ.get("VAULT_DIR", ".vault")
@@ -62,6 +62,19 @@ def extract_wikilinks(filepath):
         return []
     return re.findall(r'\[\[([^\]]+)\]\]', content)
 
+def get_body(filepath):
+    """Return file content minus YAML frontmatter."""
+    try:
+        with open(filepath, 'r') as f:
+            content = f.read()
+    except:
+        return ''
+    if content.startswith('---'):
+        parts = content.split('---', 2)
+        if len(parts) >= 3:
+            return parts[2]
+    return content
+
 # --- Read manifest ---
 with open(manifest_path, 'r') as f:
     manifest = json.load(f)
@@ -72,6 +85,7 @@ pending_sources = [s for s in sources if not s.get('compiled')]
 
 # --- Scan summaries ---
 summary_rows = []
+summaries_without_wikilinks = []
 for s in compiled_sources:
     slug = s['slug']
     summary_path = f"{wiki}/summaries/{slug}.md"
@@ -87,6 +101,12 @@ for s in compiled_sources:
         'concepts': concept_links,
         'ingested': s.get('ingested', '')
     })
+    # Robustness check: compiled summary should link to at least one concept.
+    # Parses only the body (not frontmatter) so concepts: [...] metadata doesn't count.
+    if os.path.exists(summary_path):
+        body = get_body(summary_path)
+        if not re.search(r'\[\[[^\]]+\]\]', body):
+            summaries_without_wikilinks.append(slug)
 
 # Sort by ingestion date (newest first)
 summary_rows.sort(key=lambda x: x['ingested'], reverse=True)
@@ -231,4 +251,11 @@ with open(state_path, 'w') as f:
     json.dump(state, f, indent=2)
 
 print(f"Index rebuilt: {len(compiled_sources)} sources, {len(concept_rows)} concepts, {len(output_rows)} outputs")
+
+if summaries_without_wikilinks:
+    print(f"\nWarning: {len(summaries_without_wikilinks)} compiled summaries have no wikilinks to concepts:", file=sys.stderr)
+    for slug in summaries_without_wikilinks:
+        print(f"  - wiki/summaries/{slug}.md", file=sys.stderr)
+    print("  These summaries are disconnected from the concept graph.", file=sys.stderr)
+    print("  Fix: re-run /knowledge-vault:compile <slug> or /knowledge-vault:cleanup.", file=sys.stderr)
 PYEOF

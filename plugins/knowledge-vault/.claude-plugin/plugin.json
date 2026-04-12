@@ -1,6 +1,6 @@
 {
   "name": "knowledge-vault",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Project-scoped knowledge base with ingestion (URL, Zotero, PubMed/Scholar), compilation, querying, and Obsidian browsing.",
   "author": {
     "name": "psypeal"

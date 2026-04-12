@@ -1,9 +1,9 @@
 <p align="center">
   <h1 align="center">Knowledge Vault</h1>
   <p align="center">
-    <strong>A local, LLM-powered knowledge base with academic collection via MCP.</strong>
+    <strong>A local, LLM-powered knowledge base that ingests from Zotero, academic databases, and the web.</strong>
     <br />
-    Collect from research databases. Ingest sources. Compile a wiki. Query your knowledge. Browse in Obsidian.
+    Pull papers from your Zotero library. Batch-search PubMed, arXiv, Scholar, Consensus. Compile a cross-referenced wiki. Query your knowledge. Browse in Obsidian.
   </p>
   <p align="center">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
@@ -21,7 +21,7 @@
 
 ## What It Does
 
-Knowledge Vault is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin that turns any project directory into a structured knowledge base. v2 adds batch academic collection from research databases via MCP servers.
+Knowledge Vault is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin that turns any project directory into a structured knowledge base. It **batch-ingests from your Zotero library** and from academic databases (PubMed, arXiv, Scholar Gateway, Consensus, Paper Search) via MCP servers — then compiles the raw sources into a cross-referenced wiki you can query.
 
 ```mermaid
 flowchart LR

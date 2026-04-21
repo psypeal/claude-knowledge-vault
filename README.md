@@ -3,7 +3,7 @@
   <p align="center">
     <strong>A local, LLM-powered knowledge base that ingests from Zotero, academic databases, and the web.</strong>
     <br />
-    Pull papers from your Zotero library. Batch-search PubMed, arXiv, Scholar, Consensus. Compile a cross-referenced wiki. Query your knowledge. Browse in Obsidian.
+    Pull papers from your Zotero library. Batch-search PubMed, arXiv, Scholar, Consensus. Enrich reference-only items with open-access PDFs. Compile a cross-referenced wiki. Query your knowledge. Browse in Obsidian.
   </p>
   <p align="center">
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
@@ -33,11 +33,13 @@ flowchart LR
         PS["Paper Search\n(14 databases)"]
     end
     Z["Zotero\nLibrary"]
+    U["Unpaywall\n(OA PDFs)"]
     collect -->|"/knowledge-vault:collect"| R["raw/\n.manifest.json\nsources.json"]
     Z -->|"/knowledge-vault:ingest-zotero"| R
     A["URLs, files,\nnotes, clips"] -->|"/knowledge-vault:ingest"| R
     CL["Obsidian\nWeb Clipper"] -->|auto| CLP["Clippings/"]
     CLP -->|"/knowledge-vault:process"| R
+    U -.->|"/knowledge-vault:enrich-references"| R
     R -->|"/knowledge-vault:compile"| W["wiki/\nsummaries/\nconcepts/\nindex.md"]
     W -->|"/knowledge-vault:query"| ANS["Grounded\nAnswers"]
     W -->|"/knowledge-vault:lint"| H["Health\nReport"]
@@ -191,6 +193,8 @@ See [Migration](#migration) for full details.
 | **`/knowledge-vault:init`** | Initialize a `.vault/` knowledge base in the current project |
 | **`/knowledge-vault:ingest <source>`** | Add a raw source -- URL, pasted text, or file path |
 | **`/knowledge-vault:ingest-zotero <collection>`** | Batch ingest papers from a Zotero collection (metadata, fulltext, annotations) |
+| **`/knowledge-vault:enrich-references [slug\|--all]`** | Find open-access PDFs for reference-only items via Unpaywall (and optional Sci-Hub fallback) |
+| **`/knowledge-vault:setup-scihub`** | *Optional* — install and enable the Sci-Hub MCP fallback for the current project (opt-in, see Advanced) |
 | **`/knowledge-vault:collect <query>`** | Batch search academic databases and selectively ingest results |
 | **`/knowledge-vault:setup-sources`** | Configure research MCP servers for academic collection |
 | **`/knowledge-vault:compile`** | Compile pending sources into wiki summaries and concept articles |
@@ -331,6 +335,118 @@ compiled: false
 ```
 
 Re-running the command is safe — existing slugs are skipped, so you can incrementally pull new items as you add them to Zotero.
+
+<br />
+
+## PDF Enrichment (Unpaywall)
+
+Many Zotero entries — especially those imported from PubMed or Crossref — are **reference-only**: they have metadata and an abstract but no attached PDF. `/knowledge-vault:enrich-references` plugs that gap by querying [Unpaywall](https://unpaywall.org) for an open-access version of each DOI and extracting the fulltext into the raw file.
+
+### Setup
+
+Unpaywall is free and requires no signup — only a contact email for polite API use. Set it once in your shell:
+
+```bash
+export UNPAYWALL_EMAIL=you@example.com
+```
+
+Add the line to `~/.bashrc` or `~/.zshrc` to persist across sessions.
+
+Optional: install `poppler-utils` for PDF text extraction (`pdftotext`). On Ubuntu: `sudo apt install poppler-utils`. Without it, the command still retrieves Unpaywall metadata but skips the fulltext replacement step.
+
+### How it works
+
+```
+raw/<slug>.md  (has_fulltext: false, doi: "10.xxx/...")
+       │
+       ▼
+  Unpaywall API  ──▶  is_oa?  ──yes──▶  download PDF  ──▶  pdftotext
+       │                                                        │
+       no                                                        ▼
+       │                                                Condense to
+       │                                                Metadata / Abstract /
+       │                                                Key Findings / Methods /
+       │                                                Quantitative Data
+       │                                                        │
+       │                                                        ▼
+       │                                              Replace raw body +
+       │                                              flip has_fulltext: true
+       ▼
+  Still reference-only  ──▶  Optional Sci-Hub fallback (opt-in, see Advanced)
+```
+
+### Usage
+
+```
+> /knowledge-vault:enrich-references
+  Scanning raw/... found 5 reference-only items with DOI.
+  [1/5] place-cell-remapping               Unpaywall: OA via PLOS ONE     ✓
+  [2/5] grid-cells-path-integration        Unpaywall: no OA              -
+  [3/5] hippocampal-theta-review           Unpaywall: OA via eLife       ✓
+  [4/5] entorhinal-cortex-aging            Unpaywall: no OA              -
+  [5/5] memory-consolidation-sleep         Unpaywall: OA via bioRxiv     ✓
+
+  Enriched: 3 via Unpaywall.  Still reference-only: 2.
+  Tip: run /knowledge-vault:compile to regenerate summaries for enriched items.
+```
+
+Target a single item with `/knowledge-vault:enrich-references <slug>`.
+
+### What changes in the raw file
+
+- Body: replaced with condensed fulltext extraction (Metadata / Abstract / Key Findings / Methods / Quantitative Data), same structure as Zotero ingestion.
+- Frontmatter: `has_fulltext: true` and `compiled: false` (so `/knowledge-vault:compile` picks it up next pass).
+- No PDFs are stored in the vault — only the extracted text. The plugin does not host or mirror any paper content.
+
+### Coverage
+
+Unpaywall indexes roughly 40-50% of all DOIs, with stronger coverage in biomedical and physics/CS literature. For paywalled papers, a community Sci-Hub MCP fallback exists as **opt-in** — see the command's trailing tip after any run where items remain unenriched, or the Advanced section below.
+
+<br />
+
+## Advanced: Sci-Hub fallback (opt-in, per-project)
+
+When Unpaywall can't find an open-access version of a DOI, an optional fallback routes the lookup through the community [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server). This is **strictly opt-in and per-project** — it is never enabled by default and never installed user-globally.
+
+> ⚠️  **Before enabling, read this carefully.**
+>
+> Sci-Hub provides access to research papers by routing around publisher paywalls. Its legal status varies by jurisdiction; some countries and institutions block access to it. By enabling this integration you acknowledge:
+>
+> 1. You are responsible for complying with copyright law in your jurisdiction.
+> 2. This plugin neither hosts, mirrors, nor distributes any Sci-Hub content — it only configures a third-party community MCP server on your machine.
+> 3. The opt-in is **per-vault**: enabling it in one project does not enable it anywhere else.
+
+### Enable for the current project
+
+Run inside a project that already has a `.vault/`:
+
+```bash
+/knowledge-vault:setup-scihub
+```
+
+This command:
+1. Prints the disclaimer above and requires you to type `yes` to proceed.
+2. Installs the MCP server: `uv tool install "sci-hub-mcp-server @ git+https://github.com/riichard/Sci-Hub-MCP-Server"`
+3. Registers it at **project scope only**: `claude mcp add scihub -s project -- sci-hub-mcp --transport stdio` (writes into this project's `.mcp.json`)
+4. Writes a per-vault marker file `.vault/.scihub-enabled`.
+5. Prompts you to restart Claude Code so the new MCP tools are picked up.
+
+After the restart, re-run `/knowledge-vault:enrich-references`. Items Unpaywall couldn't find will fall through to the Sci-Hub fallback automatically.
+
+### Disable
+
+```bash
+rm .vault/.scihub-enabled
+claude mcp remove scihub
+```
+
+Both commands are local to the current project. The `uv`-installed binary stays on disk until you run `uv tool uninstall sci-hub-mcp-server` — the plugin does not touch that.
+
+### Why per-project + marker file instead of a global env var
+
+- No edits to your `~/.bashrc` or `~/.zshrc`.
+- No accidental Sci-Hub traffic from unrelated projects.
+- Easy to audit which vaults have it enabled (`find . -name .scihub-enabled`).
 
 <br />
 
@@ -637,6 +753,7 @@ That's it. Your existing `.vault/` directories are fully compatible. No data mig
 - `uv` *(optional, for arXiv and Zotero MCP servers)*
 - `npx` / Node.js *(optional, for Paper Search MCP server)*
 - [Zotero](https://www.zotero.org) 7+ *(optional, for `/knowledge-vault:ingest-zotero`)*
+- `poppler-utils` *(optional, provides `pdftotext` for `/knowledge-vault:enrich-references`)*
 - [Obsidian](https://obsidian.md) *(optional, for browsing)*
 
 <br />
@@ -648,6 +765,8 @@ That's it. Your existing `.vault/` directories are fully compatible. No data mig
 - [farzaa/wiki](https://github.com/farzaa/wiki) -- wiki-as-knowledge-base pattern
 - [blazickjp/arxiv-mcp-server](https://github.com/blazickjp/arxiv-mcp-server) -- arXiv MCP server
 - [54yyyu/zotero-mcp](https://github.com/54yyyu/zotero-mcp) -- Zotero MCP server powering `/knowledge-vault:ingest-zotero`
+- [Unpaywall](https://unpaywall.org) -- open-access PDF discovery API powering `/knowledge-vault:enrich-references`
+- [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server) -- community MCP server used by the optional, per-project Sci-Hub fallback (a fork of JackKuo666's original)
 - [Galaxy-Dawn/claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar) -- inspiration for the Zotero → knowledge-base workflow
 
 ## License

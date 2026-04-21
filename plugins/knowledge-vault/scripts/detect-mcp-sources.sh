@@ -45,7 +45,7 @@ for claude_json_path in ['.claude.json', os.path.expanduser('~/.claude.json')]:
             cj = json.load(f)
         servers = cj.get('mcpServers', {})
         for name, config in servers.items():
-            if any(kw in name.lower() for kw in ['arxiv', 'pubmed', 'scholar', 'consensus', 'paper-search', 'zotero']):
+            if any(kw in name.lower() for kw in ['arxiv', 'pubmed', 'scholar', 'consensus', 'paper-search', 'zotero', 'scihub', 'sci-hub']):
                 detected.append({
                     'id': name,
                     'name': name,
@@ -54,6 +54,17 @@ for claude_json_path in ['.claude.json', os.path.expanduser('~/.claude.json')]:
                     'tools': [f'mcp__{name}__*'],
                     'add_command': None
                 })
+
+# Check for Unpaywall (not an MCP; just an email env var)
+if os.environ.get('UNPAYWALL_EMAIL'):
+    detected.append({
+        'id': 'unpaywall',
+        'name': 'Unpaywall',
+        'type': 'env-api',
+        'enabled': True,
+        'tools': ['(HTTP API; enables /knowledge-vault:enrich-references)'],
+        'add_command': None
+    })
 
 # Available servers (not yet detected)
 recommended = [
@@ -87,6 +98,14 @@ recommended = [
         'type': 'stdio',
         'note': 'Read your local Zotero library — collections, metadata, PDF fulltext, annotations (enables /knowledge-vault:ingest-zotero)',
         'add_command': 'uv tool install zotero-mcp-server && zotero-mcp setup',
+        'api_key': False
+    },
+    {
+        'id': 'unpaywall',
+        'name': 'Unpaywall',
+        'type': 'env-api',
+        'note': 'Find open-access PDFs for reference-only items by DOI (enables /knowledge-vault:enrich-references). Free, no signup — just an email for polite API use.',
+        'add_command': 'export UNPAYWALL_EMAIL=you@example.com  # add to ~/.bashrc or ~/.zshrc to persist',
         'api_key': False
     }
 ]

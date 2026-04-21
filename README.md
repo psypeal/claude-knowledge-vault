@@ -221,6 +221,7 @@ The headline feature of v2. `/knowledge-vault:collect` searches multiple academi
 | **arXiv** | stdio MCP | `claude mcp add arxiv-mcp-server -- uvx arxiv-mcp-server --storage-path .vault/raw/arxiv-papers` | arXiv preprints |
 | **Paper Search** | stdio MCP | `claude mcp add paper-search -- npx -y paper-search-mcp-nodejs` | 14 databases: arXiv, PubMed, Semantic Scholar, bioRxiv, medRxiv, Crossref, CORE, OpenAlex, DOAJ, Europe PMC, Internet Archive Scholar, Fatcat, BASE, DBLP |
 | **Zotero** | stdio MCP | `uv tool install zotero-mcp-server && zotero-mcp setup` | Your local Zotero library — collections, metadata, PDF fulltext, annotations |
+| **Sci-Hub** *(opt-in, per-project)* | stdio MCP | `/knowledge-vault:setup-scihub` (disclaimer + auto-install at project scope) | Paper retrieval by DOI — used by `/knowledge-vault:enrich-references` as a fallback for items Unpaywall can't find. See the [Advanced section](#advanced-sci-hub-fallback-opt-in-per-project) for the full disclaimer. |
 
 ### How it works
 
@@ -233,7 +234,7 @@ The system is elastic and user-controlled. No server is added without your appro
 
 ### Add your own MCP servers
 
-The 5 servers above are pre-configured suggestions, but you can add **any** MCP server as a research source. Just two steps:
+The servers above are pre-configured suggestions, but you can add **any** MCP server as a research source. Just two steps:
 
 1. **Add the server** using `claude mcp add`:
    ```bash

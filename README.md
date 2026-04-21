@@ -194,7 +194,6 @@ See [Migration](#migration) for full details.
 | **`/knowledge-vault:ingest <source>`** | Add a raw source -- URL, pasted text, or file path |
 | **`/knowledge-vault:ingest-zotero <collection>`** | Batch ingest papers from a Zotero collection (metadata, fulltext, annotations) |
 | **`/knowledge-vault:enrich-references [slug\|--all]`** | Find open-access PDFs for reference-only items via Unpaywall (and optional Sci-Hub fallback) |
-| **`/knowledge-vault:setup-scihub`** | *Optional* — install and enable the Sci-Hub MCP fallback for the current project (opt-in, see Advanced) |
 | **`/knowledge-vault:collect <query>`** | Batch search academic databases and selectively ingest results |
 | **`/knowledge-vault:setup-sources`** | Configure research MCP servers for academic collection |
 | **`/knowledge-vault:compile`** | Compile pending sources into wiki summaries and concept articles |
@@ -221,7 +220,7 @@ The headline feature of v2. `/knowledge-vault:collect` searches multiple academi
 | **arXiv** | stdio MCP | `claude mcp add arxiv-mcp-server -- uvx arxiv-mcp-server --storage-path .vault/raw/arxiv-papers` | arXiv preprints |
 | **Paper Search** | stdio MCP | `claude mcp add paper-search -- npx -y paper-search-mcp-nodejs` | 14 databases: arXiv, PubMed, Semantic Scholar, bioRxiv, medRxiv, Crossref, CORE, OpenAlex, DOAJ, Europe PMC, Internet Archive Scholar, Fatcat, BASE, DBLP |
 | **Zotero** | stdio MCP | `uv tool install zotero-mcp-server && zotero-mcp setup` | Your local Zotero library — collections, metadata, PDF fulltext, annotations |
-| **Sci-Hub** *(opt-in, per-project)* | stdio MCP | `/knowledge-vault:setup-scihub` (disclaimer + auto-install at project scope) | Paper retrieval by DOI — used by `/knowledge-vault:enrich-references` as a fallback for items Unpaywall can't find. See the [Advanced section](#advanced-sci-hub-fallback-opt-in-per-project) for the full disclaimer. |
+| **Sci-Hub** *(opt-in, per-project)* | stdio MCP | Run `/knowledge-vault:setup-sources` and select **Sci-Hub** — the disclaimer prompt + auto-install at project scope happen there | Paper retrieval by DOI — used by `/knowledge-vault:enrich-references` as a fallback for items Unpaywall can't find. See the [Advanced section](#advanced-sci-hub-fallback-opt-in-per-project) for the full disclaimer. |
 
 ### How it works
 
@@ -422,15 +421,18 @@ When Unpaywall can't find an open-access version of a DOI, an optional fallback 
 Run inside a project that already has a `.vault/`:
 
 ```bash
-/knowledge-vault:setup-scihub
+/knowledge-vault:setup-sources
 ```
 
-This command:
+When prompted, select **Sci-Hub** from the available servers. The setup-sources command then runs the Sci-Hub-specific sub-procedure:
+
 1. Prints the disclaimer above and requires you to type `yes` to proceed.
 2. Installs the MCP server: `uv tool install "sci-hub-mcp-server @ git+https://github.com/riichard/Sci-Hub-MCP-Server"`
 3. Registers it at **project scope only**: `claude mcp add scihub -s project -- sci-hub-mcp --transport stdio` (writes into this project's `.mcp.json`)
 4. Writes a per-vault marker file `.vault/.scihub-enabled`.
 5. Prompts you to restart Claude Code so the new MCP tools are picked up.
+
+Sci-Hub is the only MCP that uses `-s project` scope — every other recommended MCP defaults to user scope. This is intentional: Sci-Hub access is opt-in per vault.
 
 After the restart, re-run `/knowledge-vault:enrich-references`. Items Unpaywall couldn't find will fall through to the Sci-Hub fallback automatically.
 

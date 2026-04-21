@@ -79,7 +79,7 @@ List each still-reference-only slug with its DOI (so the user can check manually
 
 - If `K > 0` AND Sci-Hub fallback was NOT enabled, print:
   > {K} items could not be enriched via Unpaywall. To add a Sci-Hub fallback (opt-in, with legal considerations):
-  > `/knowledge-vault:setup-scihub`
+  > Run `/knowledge-vault:setup-sources` and select **Sci-Hub** when prompted. The disclaimer + per-project install runs there.
 
 - If `N + M > 0`, print:
   > Tip: run `/knowledge-vault:compile` to regenerate summaries for the newly-enriched items.

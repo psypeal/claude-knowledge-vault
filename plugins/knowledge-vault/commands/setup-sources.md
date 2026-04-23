@@ -12,33 +12,24 @@ description: Configure research MCP servers for academic collection
    - **Paper Search** (14 databases): `claude mcp add paper-search -- npx -y paper-search-mcp-nodejs`
    - **Zotero** (enables `/knowledge-vault:ingest-zotero`): `uv tool install zotero-mcp-server && zotero-mcp setup`
    - **Unpaywall** (enables `/knowledge-vault:enrich-references`): `export UNPAYWALL_EMAIL=you@example.com` — free, no signup; add to your shell rc to persist
-   - **Sci-Hub** *(opt-in, per-project — fallback for `/knowledge-vault:enrich-references` when Unpaywall misses)*: requires the explicit-consent sub-procedure in step 4a below.
+   - **Sci-Hub** *(opt-in, per-project — a source for `/knowledge-vault:enrich-references`, usable on its own or alongside Unpaywall)*: follow the short disclosure sub-procedure in step 4a below.
 4. Let user approve which servers to add. Run approved commands.
 
    **4a. If the user selects Sci-Hub, follow this sub-procedure (do NOT install otherwise):**
 
    i. Require `.vault/` in the current directory; if missing, tell the user to run `/knowledge-vault:init` first and skip Sci-Hub install.
 
-   ii. If `.vault/.scihub-enabled` already exists AND an `mcp__scihub__*` tool is visible in this session, report `Sci-Hub fallback is already enabled for this vault.` and skip.
+   ii. If `.vault/.scihub-enabled` already exists AND an `mcp__scihub__*` tool is visible in this session, report `Sci-Hub is already enabled for this vault.` and skip.
 
-   iii. Print the disclaimer **verbatim** and require an explicit `yes`:
+   iii. Show the disclosure once, then ask the user to confirm:
 
-   > ⚠️  **Sci-Hub fallback — read before enabling**
+   > ⚠️  **About Sci-Hub**
    >
-   > Sci-Hub provides access to research papers by routing around publisher paywalls.
-   > Its legal status varies by jurisdiction; some countries and institutions block
-   > access. By enabling this integration you acknowledge:
+   > Sci-Hub retrieves research papers by routing around publisher paywalls. Its legal status varies by jurisdiction. This plugin does not host or mirror Sci-Hub content — it only configures the third-party community MCP server [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server) at **project scope only** (marker file: `.vault/.scihub-enabled`). You remain responsible for copyright compliance in your jurisdiction. Disable anytime with `rm .vault/.scihub-enabled && claude mcp remove scihub` from this directory.
    >
-   > 1. You are responsible for complying with copyright law in your jurisdiction.
-   > 2. This plugin neither hosts nor mirrors Sci-Hub content — it only configures a
-   >    third-party community MCP server (riichard/Sci-Hub-MCP-Server) on your machine.
-   > 3. The Sci-Hub MCP is enabled **only for this project** (`.vault/.scihub-enabled`
-   >    marker). To enable it elsewhere, re-run `/knowledge-vault:setup-sources` and
-   >    select Sci-Hub in each project.
-   > 4. You can disable it anytime by deleting `.vault/.scihub-enabled` and running
-   >    `claude mcp remove scihub` from this directory.
+   > Proceed with the install?
 
-   If the user does not reply exactly `yes` (case-insensitive), print `Sci-Hub install cancelled. No changes made.` and skip.
+   Treat any affirmative reply as confirmation (e.g. `yes`, `y`, `ok`, `sure`, `proceed`, `go`, `continue` — case-insensitive, whitespace tolerated). Treat a clearly negative reply (`no`, `n`, `cancel`, `stop`) as a cancellation: print `Sci-Hub install cancelled. No changes made.` and skip. When unclear, ask once more briefly; don't hard-block on exact wording.
 
    iv. Verify `uv` is available (`command -v uv`); if missing, tell the user to install it (`curl -LsSf https://astral.sh/uv/install.sh | sh`) and re-run, then skip Sci-Hub install.
 
@@ -58,7 +49,7 @@ description: Configure research MCP servers for academic collection
       {
         "enabled_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
         "mcp_source": "github.com/riichard/Sci-Hub-MCP-Server",
-        "disclaimer_acknowledged": true
+        "disclosure_acknowledged": true
       }
       EOF'
       ```

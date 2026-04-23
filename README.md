@@ -193,7 +193,7 @@ See [Migration](#migration) for full details.
 | **`/knowledge-vault:init`** | Initialize a `.vault/` knowledge base in the current project |
 | **`/knowledge-vault:ingest <source>`** | Add a raw source -- URL, pasted text, or file path |
 | **`/knowledge-vault:ingest-zotero <collection>`** | Batch ingest papers from a Zotero collection (metadata, fulltext, annotations) |
-| **`/knowledge-vault:enrich-references [slug\|--all]`** | Find open-access PDFs for reference-only items via Unpaywall (and optional Sci-Hub fallback) |
+| **`/knowledge-vault:enrich-references [slug\|--all]`** | Find PDFs for reference-only items via Unpaywall (open-access) and/or Sci-Hub (opt-in) — either source works on its own |
 | **`/knowledge-vault:collect <query>`** | Batch search academic databases and selectively ingest results |
 | **`/knowledge-vault:setup-sources`** | Configure research MCP servers for academic collection |
 | **`/knowledge-vault:compile`** | Compile pending sources into wiki summaries and concept articles |
@@ -220,7 +220,7 @@ The headline feature of v2. `/knowledge-vault:collect` searches multiple academi
 | **arXiv** | stdio MCP | `claude mcp add arxiv-mcp-server -- uvx arxiv-mcp-server --storage-path .vault/raw/arxiv-papers` | arXiv preprints |
 | **Paper Search** | stdio MCP | `claude mcp add paper-search -- npx -y paper-search-mcp-nodejs` | 14 databases: arXiv, PubMed, Semantic Scholar, bioRxiv, medRxiv, Crossref, CORE, OpenAlex, DOAJ, Europe PMC, Internet Archive Scholar, Fatcat, BASE, DBLP |
 | **Zotero** | stdio MCP | `uv tool install zotero-mcp-server && zotero-mcp setup` | Your local Zotero library — collections, metadata, PDF fulltext, annotations |
-| **Sci-Hub** *(opt-in, per-project)* | stdio MCP | Run `/knowledge-vault:setup-sources` and select **Sci-Hub** — the disclaimer prompt + auto-install at project scope happen there | Paper retrieval by DOI — used by `/knowledge-vault:enrich-references` as a fallback for items Unpaywall can't find. See the [Advanced section](#advanced-sci-hub-fallback-opt-in-per-project) for the full disclaimer. |
+| **Sci-Hub** *(opt-in, per-project)* | stdio MCP | Run `/knowledge-vault:setup-sources` and select **Sci-Hub** — the short disclosure + auto-install at project scope happen there | Paper retrieval by DOI — used by `/knowledge-vault:enrich-references` as a peer source. Works standalone, or alongside Unpaywall (in which case Unpaywall runs first and Sci-Hub handles what it misses). See the [Advanced section](#advanced-sci-hub-opt-in-per-project). |
 
 ### How it works
 
@@ -338,13 +338,17 @@ Re-running the command is safe — existing slugs are skipped, so you can increm
 
 <br />
 
-## PDF Enrichment (Unpaywall)
+## PDF Enrichment
 
-Many Zotero entries — especially those imported from PubMed or Crossref — are **reference-only**: they have metadata and an abstract but no attached PDF. `/knowledge-vault:enrich-references` plugs that gap by querying [Unpaywall](https://unpaywall.org) for an open-access version of each DOI and extracting the fulltext into the raw file.
+Many Zotero entries — especially those imported from PubMed or Crossref — are **reference-only**: they have metadata and an abstract but no attached PDF. `/knowledge-vault:enrich-references` plugs that gap by looking up each DOI through **Unpaywall** (free, open-access) and/or **Sci-Hub** (opt-in, per-project), then extracting the fulltext into the raw file.
+
+Either source works on its own. When both are configured, Unpaywall runs first per item (free, OA-only, no legal questions) and Sci-Hub handles what it misses.
 
 ### Setup
 
-Unpaywall is free and requires no signup — only a contact email for polite API use. Set it once in your shell:
+Enable **at least one** source. You can enable both for best coverage.
+
+**Unpaywall** (free, open-access, no signup — just a contact email for polite API use):
 
 ```bash
 export UNPAYWALL_EMAIL=you@example.com
@@ -352,7 +356,15 @@ export UNPAYWALL_EMAIL=you@example.com
 
 Add the line to `~/.bashrc` or `~/.zshrc` to persist across sessions.
 
-Optional: install `poppler-utils` for PDF text extraction (`pdftotext`). On Ubuntu: `sudo apt install poppler-utils`. Without it, the command still retrieves Unpaywall metadata but skips the fulltext replacement step.
+**Sci-Hub** (opt-in, per-project — routes through the community [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server); see the [Advanced section](#advanced-sci-hub-opt-in-per-project) for legal context):
+
+```
+/knowledge-vault:setup-sources
+```
+
+Select **Sci-Hub** when prompted.
+
+Optional: install `poppler-utils` for PDF text extraction (`pdftotext`). On Ubuntu: `sudo apt install poppler-utils`. Without it, the command still retrieves metadata but skips the fulltext replacement step.
 
 ### How it works
 
@@ -360,19 +372,17 @@ Optional: install `poppler-utils` for PDF text extraction (`pdftotext`). On Ubun
 raw/<slug>.md  (has_fulltext: false, doi: "10.xxx/...")
        │
        ▼
-  Unpaywall API  ──▶  is_oa?  ──yes──▶  download PDF  ──▶  pdftotext
-       │                                                        │
-       no                                                        ▼
-       │                                                Condense to
-       │                                                Metadata / Abstract /
-       │                                                Key Findings / Methods /
-       │                                                Quantitative Data
-       │                                                        │
-       │                                                        ▼
-       │                                              Replace raw body +
-       │                                              flip has_fulltext: true
-       ▼
-  Still reference-only  ──▶  Optional Sci-Hub fallback (opt-in, see Advanced)
+  Ask Unpaywall (if enabled)  ──PDF──▶  download + pdftotext
+       │                                      │
+       miss / disabled                        ▼
+       │                            Condense to
+       ▼                            Metadata / Abstract /
+  Ask Sci-Hub (if enabled)  ──PDF──▶  Key Findings / Methods /
+       │                            Quantitative Data
+       miss / disabled                        │
+       │                                      ▼
+       ▼                            Replace raw body +
+  Still reference-only              flip has_fulltext: true
 ```
 
 ### Usage
@@ -380,15 +390,19 @@ raw/<slug>.md  (has_fulltext: false, doi: "10.xxx/...")
 ```
 > /knowledge-vault:enrich-references
   Scanning raw/... found 5 reference-only items with DOI.
-  [1/5] place-cell-remapping               Unpaywall: OA via PLOS ONE     ✓
-  [2/5] grid-cells-path-integration        Unpaywall: no OA              -
-  [3/5] hippocampal-theta-review           Unpaywall: OA via eLife       ✓
-  [4/5] entorhinal-cortex-aging            Unpaywall: no OA              -
-  [5/5] memory-consolidation-sleep         Unpaywall: OA via bioRxiv     ✓
+  [1/5] place-cell-remapping               Unpaywall: OA via PLOS ONE      ✓
+  [2/5] grid-cells-path-integration        Unpaywall: no OA  →  Sci-Hub    ✓
+  [3/5] hippocampal-theta-review           Unpaywall: OA via eLife         ✓
+  [4/5] entorhinal-cortex-aging            Unpaywall: no OA  →  Sci-Hub: no PDF  -
+  [5/5] memory-consolidation-sleep         Unpaywall: OA via bioRxiv       ✓
 
-  Enriched: 3 via Unpaywall.  Still reference-only: 2.
+  Enriched via Unpaywall: 3
+  Enriched via Sci-Hub:    1
+  Still reference-only:    1
   Tip: run /knowledge-vault:compile to regenerate summaries for enriched items.
 ```
+
+(When only one source is enabled, the per-item line shows only that source. The tally omits empty rows.)
 
 Target a single item with `/knowledge-vault:enrich-references <slug>`.
 
@@ -400,17 +414,17 @@ Target a single item with `/knowledge-vault:enrich-references <slug>`.
 
 ### Coverage
 
-Unpaywall indexes roughly 40-50% of all DOIs, with stronger coverage in biomedical and physics/CS literature. For paywalled papers, a community Sci-Hub MCP fallback exists as **opt-in** — see the command's trailing tip after any run where items remain unenriched, or the Advanced section below.
+Unpaywall indexes roughly 40-50% of all DOIs, with stronger coverage in biomedical and physics/CS literature. Sci-Hub covers much of the paywalled remainder, with legal trade-offs you need to weigh yourself — see the Advanced section below.
 
 <br />
 
-## Advanced: Sci-Hub fallback (opt-in, per-project)
+## Advanced: Sci-Hub (opt-in, per-project)
 
-When Unpaywall can't find an open-access version of a DOI, an optional fallback routes the lookup through the community [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server). This is **strictly opt-in and per-project** — it is never enabled by default and never installed user-globally.
+Sci-Hub is an optional **peer source** for `/knowledge-vault:enrich-references`, routed through the community [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server). It is **strictly opt-in and per-project** — never enabled by default, never installed user-globally. You can use it standalone, or alongside Unpaywall (in which case Unpaywall runs first per item and Sci-Hub handles what it misses).
 
-> ⚠️  **Before enabling, read this carefully.**
+> ⚠️  **About Sci-Hub**
 >
-> Sci-Hub provides access to research papers by routing around publisher paywalls. Its legal status varies by jurisdiction; some countries and institutions block access to it. By enabling this integration you acknowledge:
+> Sci-Hub retrieves research papers by routing around publisher paywalls. Its legal status varies by jurisdiction; some countries and institutions block access to it. By enabling this integration you acknowledge:
 >
 > 1. You are responsible for complying with copyright law in your jurisdiction.
 > 2. This plugin neither hosts, mirrors, nor distributes any Sci-Hub content — it only configures a third-party community MCP server on your machine.
@@ -424,9 +438,9 @@ Run inside a project that already has a `.vault/`:
 /knowledge-vault:setup-sources
 ```
 
-When prompted, select **Sci-Hub** from the available servers. The setup-sources command then runs the Sci-Hub-specific sub-procedure:
+When prompted, select **Sci-Hub** from the available servers. The command then:
 
-1. Prints the disclaimer above and requires you to type `yes` to proceed.
+1. Shows the disclosure above and asks you to confirm. Any affirmative reply proceeds (`yes`, `y`, `ok`, `sure`, `proceed` — case-insensitive); anything clearly negative cancels.
 2. Installs the MCP server: `uv tool install "sci-hub-mcp-server @ git+https://github.com/riichard/Sci-Hub-MCP-Server"`
 3. Registers it at **project scope only**: `claude mcp add scihub -s project -- sci-hub-mcp --transport stdio` (writes into this project's `.mcp.json`)
 4. Writes a per-vault marker file `.vault/.scihub-enabled`.
@@ -434,7 +448,7 @@ When prompted, select **Sci-Hub** from the available servers. The setup-sources 
 
 Sci-Hub is the only MCP that uses `-s project` scope — every other recommended MCP defaults to user scope. This is intentional: Sci-Hub access is opt-in per vault.
 
-After the restart, re-run `/knowledge-vault:enrich-references`. Items Unpaywall couldn't find will fall through to the Sci-Hub fallback automatically.
+After the restart, re-run `/knowledge-vault:enrich-references`. It will use whichever sources are configured; if both Unpaywall and Sci-Hub are enabled, Unpaywall runs first and Sci-Hub picks up anything it couldn't find.
 
 ### Disable
 
@@ -769,7 +783,7 @@ That's it. Your existing `.vault/` directories are fully compatible. No data mig
 - [blazickjp/arxiv-mcp-server](https://github.com/blazickjp/arxiv-mcp-server) -- arXiv MCP server
 - [54yyyu/zotero-mcp](https://github.com/54yyyu/zotero-mcp) -- Zotero MCP server powering `/knowledge-vault:ingest-zotero`
 - [Unpaywall](https://unpaywall.org) -- open-access PDF discovery API powering `/knowledge-vault:enrich-references`
-- [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server) -- community MCP server used by the optional, per-project Sci-Hub fallback (a fork of JackKuo666's original)
+- [riichard/Sci-Hub-MCP-Server](https://github.com/riichard/Sci-Hub-MCP-Server) -- community MCP server used by the optional, per-project Sci-Hub source (a fork of JackKuo666's original)
 - [Galaxy-Dawn/claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar) -- inspiration for the Zotero → knowledge-base workflow
 
 ## License

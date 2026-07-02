@@ -31,16 +31,16 @@ If `$ARGUMENTS` names a specific source slug, compile only that source. Otherwis
    c. Cross-reference: update `related` fields. Use `[[wikilinks]]` in bodies. Do NOT read `_backlinks.json` — the script handles that.
 4. **Mark compiled** — call BOTH scripts for EACH compiled source slug individually:
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-frontmatter.sh" .vault/raw/SOURCE1.md compiled=true
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-manifest.sh" SOURCE1 compiled=true
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-frontmatter.sh" .vault/raw/SOURCE2.md compiled=true
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-manifest.sh" SOURCE2 compiled=true
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-frontmatter.sh" .vault/raw/SOURCE1.md compiled=true
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-manifest.sh" SOURCE1 compiled=true
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-frontmatter.sh" .vault/raw/SOURCE2.md compiled=true
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-manifest.sh" SOURCE2 compiled=true
    ```
    One pair of calls per source. Do NOT batch multiple slugs into one call.
 5. **Rebuild**:
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/rebuild-index.sh"
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-state.sh" .vault last_compiled="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-state.sh" .vault last_compiled="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
    ```
 6. **Update agent.md** ONLY if `agent.md` frontmatter shows `total_queries >= 3`. Add/update Source Signals. Increment `total_compiles`.
 

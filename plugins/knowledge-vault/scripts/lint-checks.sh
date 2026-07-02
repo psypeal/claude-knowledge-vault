@@ -1,6 +1,7 @@
 #!/bin/bash
 # knowledge-vault: Run mechanical lint checks via script (no tokens).
-# Handles checks 2-5, 6 (alias overlap), and 8. Outputs JSON report.
+# Handles checks 2-6 (incl. alias overlap), 8, and 9a/9b (originals + tree integrity).
+# Outputs a markdown report.
 # Usage: bash lint-checks.sh [vault-dir]
 
 set -euo pipefail

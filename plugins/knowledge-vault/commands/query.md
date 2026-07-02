@@ -24,7 +24,7 @@ Drop here only when tier 2 lacks the *specific* detail (an exact statistic, a nu
 If no tree exists for any candidate, skip to tier 4 with the raw markdown body instead.
 
 ### Tier 4 — Source extraction
-Pull just the relevant pages from the original document:
+Pull just the relevant pages from the original document. Preflight: `command -v pdftotext` — if missing, tell the user once to install poppler-utils (`sudo apt install poppler-utils` / `brew install poppler`) and answer from the tier-2/3 material instead.
 
 ```bash
 pdftotext -f <start_index> -l <end_index> .vault/originals/<slug>.pdf -
@@ -40,9 +40,9 @@ Read that excerpt, then answer with the precise quote/figure/number, citing both
 
 ## When to do more
 
-**File the answer** ONLY when the user says "file it" or "save this". Then write to `wiki/outputs/` and run `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/rebuild-index.sh"`.
+**File the answer** ONLY when the user says "file it" or "save this". Then write to `wiki/outputs/` and run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"`.
 
-**Update agent.md** ONLY after 3+ queries in the same session. Then read `${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/skills/vault-operations/references/agent-update-rules.md`.
+**Update agent.md** ONLY after 3+ queries in the same session. Then read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/agent-update-rules.md`.
 
 **Agent pre-routing** ONLY if `total_queries >= 5` in agent.md. Read it before the index.
 

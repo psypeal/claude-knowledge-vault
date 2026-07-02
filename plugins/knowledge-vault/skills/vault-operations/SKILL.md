@@ -1,5 +1,5 @@
 ---
-name: knowledge-vault
+name: vault-operations
 description: Operate a local knowledge-base vault (.vault/ directory) within any project. This skill should be used when the user says "vault init", "vault ingest", "vault compile", "vault lint", "vault query", "vault process", "vault cleanup", "vault collect", "vault setup-sources", "vault status", "vault agent reset", "add to vault", "ask the vault", "check the vault", or references the .vault/ directory.
 user-invocable: false
 ---

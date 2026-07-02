@@ -1,6 +1,6 @@
 {
   "name": "knowledge-vault",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Project-scoped knowledge base with ingestion (URL, Zotero, PubMed/Scholar), preserved originals + bibliographic slugs, PageIndex tree indexing per PDF, 4-tier reasoning-routed query, PDF enrichment via Unpaywall and/or Sci-Hub (opt-in), compilation, and Obsidian browsing.",
   "author": {
     "name": "psypeal"

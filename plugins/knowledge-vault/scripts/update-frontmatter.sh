@@ -14,19 +14,35 @@ if [ ! -f "$FILE" ]; then
     exit 1
 fi
 
-python3 -c "
-import sys, re
+python3 - "$FILE" "$@" << 'PYEOF'
+import sys
 
-filepath = '$FILE'
+filepath = sys.argv[1]
 updates = {}
-for arg in sys.argv[1:]:
+for arg in sys.argv[2:]:
     key, _, val = arg.partition('=')
-    # Handle booleans
-    if val.lower() == 'true':
-        val = 'true'
-    elif val.lower() == 'false':
-        val = 'false'
     updates[key] = val
+
+
+def yaml_value(val):
+    """Quote values that would be ambiguous or invalid as bare YAML scalars."""
+    if val in ('true', 'false') or val == '':
+        return val
+    try:
+        float(val)
+        return val
+    except ValueError:
+        pass
+    needs_quoting = (
+        ': ' in val or val.endswith(':')
+        or ' #' in val
+        or val[0] in "'\"{[#&*!|>%@`"
+        or val != val.strip()
+    )
+    if needs_quoting:
+        return '"' + val.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    return val
+
 
 with open(filepath, 'r') as f:
     content = f.read()
@@ -48,7 +64,7 @@ for line in fm_lines:
     if ':' in line:
         key = line.split(':')[0].strip()
         if key in updates:
-            new_fm_lines.append(f'{key}: {updates[key]}')
+            new_fm_lines.append(f'{key}: {yaml_value(updates[key])}')
             updated_keys.add(key)
             continue
     new_fm_lines.append(line)
@@ -56,7 +72,7 @@ for line in fm_lines:
 # Add any new keys not already in frontmatter
 for key, val in updates.items():
     if key not in updated_keys:
-        new_fm_lines.append(f'{key}: {val}')
+        new_fm_lines.append(f'{key}: {yaml_value(val)}')
 
 new_content = '---\n' + '\n'.join(new_fm_lines) + '\n---' + parts[2]
 
@@ -64,4 +80,4 @@ with open(filepath, 'w') as f:
     f.write(new_content)
 
 print(f'Updated {filepath}: {list(updates.keys())}')
-" "$@"
+PYEOF

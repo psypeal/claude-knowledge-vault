@@ -7,7 +7,7 @@ description: Run health checks on the wiki
 **Step 1 — Automated checks (via script, no tokens):**
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/lint-checks.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/lint-checks.sh"
 ```
 
 This runs checks 2-6, 8, and 9 (stale, missing concepts, orphaned, thin, duplicate aliases, agent staleness, **originals + tree integrity**) by scanning frontmatter and file existence. Save the output.
@@ -26,8 +26,8 @@ Only read articles for these two checks if `wiki/.state.json` shows `concept_cou
 Combine script output + Claude checks into `wiki/outputs/lint-YYYY-MM-DD.md`. Run:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/rebuild-index.sh"
-bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-state.sh" .vault last_lint="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-state.sh" .vault last_lint="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
 Print summary: "Vault lint: X critical, Y warnings, Z suggestions." Keep output terse — do not echo full article contents.

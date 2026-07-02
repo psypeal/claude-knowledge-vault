@@ -35,8 +35,12 @@ You are a research collection agent for the Knowledge Vault.
 
 7. **Batch ingest**: For each selected item:
    a. Fetch full metadata (title, authors, abstract, DOI, date).
-   b. Generate slug from title (lowercase, hyphens, max 60 chars).
-   c. Run: `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/ingest.sh" "<slug>" "<title>" "paper" [tags...]`
+   b. Derive a bibliographic slug (v2.4 rules, same as `/knowledge-vault:ingest`): `<first-author-lastname>-<year>-<keyword>` for papers; title-based only when no author/year is available. Sanitize and disambiguate via:
+      ```bash
+      SLUG=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/derive-slug.sh" "<author-lastname>" "<year>" "<keyword>" .vault)
+      ```
+   c. Run: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ingest.sh" "<slug>" "<title>" "paper" [tags...]`
+   c2. Register in the index: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "paper"`
    d. **Apply condensation** (same rules as `/knowledge-vault:ingest` step 2):
       - If content (abstract + any available text) is 1000+ words, produce a structured extraction: Metadata, Abstract, Key Findings, Methods, Quantitative Data — capping at ~800-1200 words.
       - If content is short (<1000 words), store abstract + metadata as-is.

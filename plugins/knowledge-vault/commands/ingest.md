@@ -23,13 +23,12 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
    **Metadata extraction chain** (use the first that yields author/org + year + keyword):
    1. Source already provides structured metadata (PubMed/Scholar MCP, DOI lookup) → use directly.
    2. Source URL has a DOI in path → query Crossref `https://api.crossref.org/works/<doi>` via WebFetch.
-   3. Source is a PDF and PageIndex is set up → run tree-build first; the resulting `tree.json` carries a `doc_description` with title/authors info.
-   4. Source is a PDF, PageIndex unavailable → run `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/extract-metadata.sh" <pdf>` (returns first-page text); read it and extract author/org + year + 1-2-word keyword.
-   5. All else fails → fall back to title-based slug. Set frontmatter `slug_source: title-fallback` so the user can rename later.
+   3. Source is a PDF → run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/extract-metadata.sh" <pdf>` (returns first-page text); read it and extract author/org + year + 1-2-word keyword. (The tree is built later, in step 4, after the slug exists — never build it twice.)
+   4. All else fails → fall back to title-based slug. Set frontmatter `slug_source: title-fallback` so the user can rename later.
 
    Then sanitize and disambiguate:
    ```bash
-   SLUG=$(bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/derive-slug.sh" "<entity>" "<year>" "<keyword>" .vault)
+   SLUG=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/derive-slug.sh" "<entity>" "<year>" "<keyword>" .vault)
    ```
 
 3. **Preserve the original artifact** (only when there *is* one — text input has no original file):
@@ -39,7 +38,7 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
 
 4. **Build tree** (only for PDF originals when PageIndex is set up):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
    ```
    - On success (`exit 0`): set `has_tree: true` and `tree_path: <slug>.tree.json`. Render the body via `render-tree-outline.sh`.
    - On failure (or PageIndex unavailable): set `has_tree: false` and proceed to step 5's condense.
@@ -76,7 +75,7 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
    - The user explicitly says "store full text"
    - A tree was already built in step 4 (the tree-derived outline replaces the flat condense)
 
-6. **Run**: `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/ingest.sh" "<slug>" "<title>" "<type>" [tags...]` to create the raw file skeleton.
+6. **Run**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ingest.sh" "<slug>" "<title>" "<type>" [tags...]` to create the raw file skeleton.
 
 7. **Fill content + frontmatter**: Write the body (tree outline from step 4 or condensed from step 5) into `raw/<slug>.md` using Edit tool. Then run `update-frontmatter.sh` to record:
    - `source:` (URL if applicable)
@@ -85,10 +84,11 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
    - `has_tree: true|false`
    - `tree_path: <slug>.tree.json` (only when has_tree=true)
    - `pages: <N>` (when known)
+   - `has_fulltext: true|false` (`true` when the full text was fetched/extracted; `false` for reference-only items — `/knowledge-vault:enrich-references` scans for `has_fulltext: false` + `doi`)
 
 8. **Update index** (via script — no need to read index.md):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/index-append.sh" "<slug>" "<type>"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "<type>"
    ```
 
 **Context note**: Report only: "Ingested <title> as raw/<slug>.md" plus, when applicable, "tree built (N pages)". Do not echo file contents.

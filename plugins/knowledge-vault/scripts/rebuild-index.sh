@@ -76,8 +76,15 @@ def get_body(filepath):
     return content
 
 # --- Read manifest ---
-with open(manifest_path, 'r') as f:
-    manifest = json.load(f)
+try:
+    with open(manifest_path, 'r') as f:
+        manifest = json.load(f)
+except FileNotFoundError:
+    print(f'Error: {manifest_path} not found. Run /knowledge-vault:init first.')
+    sys.exit(1)
+except json.JSONDecodeError as e:
+    print(f'Error: {manifest_path} is corrupt ({e}).')
+    sys.exit(1)
 
 sources = manifest.get('sources', [])
 compiled_sources = [s for s in sources if s.get('compiled')]

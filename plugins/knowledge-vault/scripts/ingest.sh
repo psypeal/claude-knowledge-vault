@@ -13,7 +13,7 @@ fi
 
 SLUG="${1:?Usage: ingest.sh <slug> <title> <type> [tags...]}"
 TITLE="${2:?Missing title}"
-TYPE="${3:?Missing type (paper|article|repo|dataset|meeting|notes|clip)}"
+TYPE="${3:?Missing type (paper|article|report|manual|filing|guideline|repo|dataset|meeting|notes|clip)}"
 shift 3
 TAGS=("$@")
 
@@ -26,7 +26,9 @@ if [ -f "$RAW_FILE" ]; then
     exit 1
 fi
 
-# Create raw file and update manifest via Python (safe against special chars in title)
+# Create raw file and update manifest via Python (safe against special chars in title).
+# The manifest is parsed FIRST so a missing/corrupt manifest fails before any file
+# is written — no orphaned raw files.
 python3 - "$SLUG" "$TITLE" "$TYPE" "$TIMESTAMP" "$RAW_FILE" "$MANIFEST" "${TAGS[@]}" << 'PYEOF'
 import json, sys, os
 
@@ -38,12 +40,23 @@ raw_file = sys.argv[5]
 manifest_path = sys.argv[6]
 tags = list(sys.argv[7:])
 
+# Validate manifest before touching anything else
+try:
+    with open(manifest_path, 'r') as f:
+        manifest = json.load(f)
+except FileNotFoundError:
+    print(f'Error: {manifest_path} not found. Run /knowledge-vault:init first.')
+    sys.exit(1)
+except json.JSONDecodeError as e:
+    print(f'Error: {manifest_path} is corrupt ({e}). Fix it before ingesting.')
+    sys.exit(1)
+
 # Escape title for YAML double-quoted scalar (backslash, then double-quote)
 yaml_title = title.replace('\\', '\\\\').replace('"', '\\"')
 
 # Build tags YAML array
 if tags:
-    tags_yaml = '[' + ', '.join(f'"{t}"' for t in tags) + ']'
+    tags_yaml = '[' + ', '.join('"' + t.replace('\\', '\\\\').replace('"', '\\"') + '"' for t in tags) + ']'
 else:
     tags_yaml = '[]'
 
@@ -59,9 +72,6 @@ with open(raw_file, 'w') as f:
     f.write(f'---\n\n')
 
 # Update manifest
-with open(manifest_path, 'r') as f:
-    manifest = json.load(f)
-
 manifest['sources'].append({
     'slug': slug,
     'title': title,

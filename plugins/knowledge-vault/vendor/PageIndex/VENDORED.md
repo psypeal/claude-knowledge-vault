@@ -20,6 +20,10 @@ cd /tmp
 git clone --depth 1 https://github.com/VectifyAI/PageIndex.git pi
 rsync -a --delete \
   --exclude .git --exclude .github --exclude cookbook --exclude examples --exclude .claude \
+  --exclude .env \
   pi/ /path/to/plugin/vendor/PageIndex/
 # Then re-apply local modifications to pageindex/config.yaml.
+# NOTE: --exclude .env is load-bearing — vendor/PageIndex/.env holds the user's
+# ANTHROPIC_API_KEY (written by /knowledge-vault:setup-sources); deleting it
+# silently disables tree builds.
 ```

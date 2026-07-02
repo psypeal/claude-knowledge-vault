@@ -19,11 +19,16 @@ echo ""
 
 # Source counts from manifest
 if [ -f "$MANIFEST" ]; then
-    python3 -c "
+    python3 - "$MANIFEST" << 'PYEOF'
 import json
+import sys
 
-with open('$MANIFEST', 'r') as f:
-    m = json.load(f)
+try:
+    with open(sys.argv[1], 'r') as f:
+        m = json.load(f)
+except (json.JSONDecodeError, OSError) as e:
+    print(f'Sources:    manifest unreadable ({e.__class__.__name__})')
+    sys.exit(0)
 
 sources = m.get('sources', [])
 total = len(sources)
@@ -33,11 +38,11 @@ pending = total - compiled
 print(f'Sources:    {total} total, {compiled} compiled, {pending} pending')
 
 if pending > 0:
-    print(f'  Pending:')
+    print('  Pending:')
     for s in sources:
         if not s.get('compiled'):
-            print(f'    - {s[\"slug\"]} ({s[\"type\"]})')
-"
+            print(f'    - {s.get("slug", "?")} ({s.get("type", "?")})')
+PYEOF
 else
     echo "Sources:    no manifest found"
 fi
@@ -46,22 +51,27 @@ echo ""
 
 # Wiki stats from state
 if [ -f "$STATE" ]; then
-    python3 -c "
+    python3 - "$STATE" << 'PYEOF'
 import json
+import sys
 
-with open('$STATE', 'r') as f:
-    s = json.load(f)
+try:
+    with open(sys.argv[1], 'r') as f:
+        s = json.load(f)
+except (json.JSONDecodeError, OSError):
+    print('Wiki state: unreadable')
+    sys.exit(0)
 
 stats = s.get('stats', {})
-print(f'Concepts:   {stats.get(\"concept_count\", 0)}')
-print(f'Summaries:  {stats.get(\"summary_count\", 0)}')
-print(f'Outputs:    {stats.get(\"output_count\", 0)}')
-print(f'')
+print(f'Concepts:   {stats.get("concept_count", 0)}')
+print(f'Summaries:  {stats.get("summary_count", 0)}')
+print(f'Outputs:    {stats.get("output_count", 0)}')
+print('')
 lc = s.get('last_compiled') or 'never'
 ll = s.get('last_lint') or 'never'
 print(f'Last compiled: {lc}')
 print(f'Last lint:     {ll}')
-"
+PYEOF
 else
     echo "Wiki state: no state file found"
 fi
@@ -70,10 +80,11 @@ echo ""
 
 # Agent stats
 if [ -f "$AGENT_FILE" ]; then
-    python3 -c "
+    python3 - "$AGENT_FILE" << 'PYEOF'
 import re
+import sys
 
-with open('$AGENT_FILE', 'r') as f:
+with open(sys.argv[1], 'r') as f:
     content = f.read()
 
 # Extract frontmatter values
@@ -101,31 +112,36 @@ else:
     print(f'  Clusters: {clusters}/8')
     print(f'  Patterns: {patterns}/10')
     print(f'  Signals:  {signals}/15')
-"
+PYEOF
 else
     echo "Agent:      not initialized"
 fi
 
 echo ""
 
-# Research sources
+# Configured research servers (MCP etc.)
 if [ -f "$SOURCES_FILE" ]; then
-    python3 -c "
+    python3 - "$SOURCES_FILE" << 'PYEOF'
 import json
+import sys
 
-with open('$SOURCES_FILE', 'r') as f:
-    s = json.load(f)
+try:
+    with open(sys.argv[1], 'r') as f:
+        s = json.load(f)
+except (json.JSONDecodeError, OSError):
+    print('Research:   sources.json unreadable')
+    sys.exit(0)
 
 sources = s.get('configured_sources', [])
 enabled = [x for x in sources if x.get('enabled')]
 if enabled:
     names = ', '.join(x['name'] for x in enabled)
-    print(f'Sources:    {len(enabled)} configured ({names})')
+    print(f'Research:   {len(enabled)} configured ({names})')
 else:
-    print('Sources:    none configured (run /knowledge-vault:setup-sources)')
-"
+    print('Research:   none configured (run /knowledge-vault:setup-sources)')
+PYEOF
 else
-    echo "Sources:    none configured"
+    echo "Research:   none configured"
 fi
 
 echo ""

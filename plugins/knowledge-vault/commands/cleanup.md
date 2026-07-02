@@ -23,7 +23,7 @@ description: Audit and actively fix wiki article quality
 5. **Fix broken wikilinks**: `[[links]]` to non-existent articles -- create the missing article or remove the link.
 6. **Rebuild** (via script — no need to re-read every file):
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/rebuild-index.sh"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/rebuild-index.sh"
    ```
 
 7. **Backfill missing originals** (v2.3 → v2.4 migration; opt-in, re-runnable):
@@ -32,7 +32,7 @@ description: Audit and actively fix wiki article quality
 
    a. **Scan candidates**:
       ```bash
-      bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/backfill-candidates.sh" .vault
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/backfill-candidates.sh" .vault
       ```
       Returns `{categorized: {from_zotero, from_doi, from_url, unrecoverable}, counts, total_missing}`.
 
@@ -49,21 +49,21 @@ description: Audit and actively fix wiki article quality
       Then ask: `Backfill which? (all / zotero-only / doi-only / url-only / pick / no)`. Treat any clearly negative reply as `no` and skip.
 
    d. **For each candidate selected**, recover the PDF using the appropriate method:
-      - **`from_zotero`**: call `mcp__zotero__zotero_get_item_fulltext` with the stored `zotero_key`. Write the returned bytes to `/tmp/kv-backfill-<slug>.pdf`. If the MCP returns no PDF (item is reference-only in Zotero too), record `status: "no-pdf-found"` and skip.
+      - **`from_zotero`**: query Zotero via the stored `zotero_key`. If Zotero exposes a **local PDF attachment path**, copy that file to `/tmp/kv-backfill-<slug>.pdf`. Note: `mcp__zotero__zotero_get_item_fulltext` usually returns *extracted text*, not PDF bytes — text is NOT a recoverable original; never save it under a `.pdf` name. If no actual PDF file is obtainable (reference-only item, or only text available), record `status: "no-pdf-found"` and skip.
       - **`from_doi`**: hand off to the same logic as `/knowledge-vault:enrich-references` step 3 — try Unpaywall first (if `UNPAYWALL_EMAIL` set), then Sci-Hub (if marker file + MCP tools present). Save the PDF to `/tmp/kv-backfill-<slug>.pdf`.
       - **`from_url`**: `curl -L -o /tmp/kv-backfill-<slug>.pdf "<source>"` (permission prompt). Verify the response is actually a PDF (`file /tmp/kv-backfill-<slug>.pdf | grep -q PDF`). If not (login wall, captcha, etc.), record `status: "url-returned-non-pdf"` and skip.
 
-   e. **Preserve, build tree, update frontmatter** (same flow regardless of recovery method):
+   e. **Preserve, build tree, update frontmatter** (same flow regardless of recovery method). First verify the recovered file really is a PDF — for EVERY recovery method, not just URLs: `file /tmp/kv-backfill-<slug>.pdf | grep -q PDF`. If it isn't, record `status: "recovered-non-pdf"` and skip this item. Otherwise:
       ```bash
       mkdir -p .vault/originals
       mv /tmp/kv-backfill-<slug>.pdf .vault/originals/<slug>.pdf
-      bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-frontmatter.sh" \
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-frontmatter.sh" \
         .vault/raw/<slug>.md \
         original_path=originals/<slug>.pdf
       ```
       **If PageIndex is set up** (`vendor/PageIndex/.env` present, deps installed):
       ```bash
-      bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
       ```
       On tree success: `update-frontmatter.sh ... has_tree=true tree_path=<slug>.tree.json`.
       On tree failure or PageIndex absent: `update-frontmatter.sh ... has_tree=false`. Don't touch the markdown body.
@@ -84,6 +84,6 @@ description: Audit and actively fix wiki article quality
 
 8. Report: "Cleanup complete: X articles restructured, Y stubs enriched, Z articles split, W broken links fixed, B originals backfilled."
 
-**Writing quality**: Only read `${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/skills/vault-operations/references/writing-rules.md` if not already read in this session.
+**Writing quality**: Only read `${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/writing-rules.md` if not already read in this session.
 
 **Context note**: Report only summary counts. Do not echo full article contents back to the user.

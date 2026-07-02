@@ -21,8 +21,12 @@ import sys
 
 tree_path = sys.argv[1]
 
-with open(tree_path, 'r') as f:
-    tree = json.load(f)
+try:
+    with open(tree_path, 'r') as f:
+        tree = json.load(f)
+except json.JSONDecodeError as e:
+    print(f'Error: {tree_path} is not valid JSON ({e}). Rebuild the tree via build-tree.sh.', file=sys.stderr)
+    sys.exit(1)
 
 # PageIndex top-level output is a list of nodes (with optional doc-description as a sibling node).
 # Some configs return a dict { "doc_description": "...", "nodes": [...] }; handle both.

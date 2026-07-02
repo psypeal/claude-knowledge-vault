@@ -13,21 +13,22 @@ description: Batch ingest inbox + Clippings and compile all pending
 2. **For each Markdown / HTML clipping**:
    a. Read it. Extract title and metadata from YAML frontmatter (Obsidian Web Clipper format).
    b. Derive a slug from the title (title-based, as in v2.3 — clips are `type: clip` or `type: article`).
-   c. Move to `raw/<slug>.md` (reformat frontmatter to vault schema if needed).
-   d. Move the original to `.vault/originals/<slug>.<ext>` if it's HTML; for clipper-converted markdown, treat the markdown itself as the original and skip the duplicate.
-   e. Add entry to `raw/.manifest.json` via `index-append.sh`.
+   c. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ingest.sh" "<slug>" "<title>" "<type>"` — this creates the `raw/<slug>.md` skeleton AND registers the entry in `raw/.manifest.json` (required: `/compile` is manifest-driven; a raw file outside the manifest is never compiled).
+   d. Edit `raw/<slug>.md` to fill the body with the clipping content, then `update-frontmatter.sh` to record `source:` (the clipped URL) and any extra clipper metadata.
+   e. Move the original to `.vault/originals/<slug>.<ext>` if it's HTML (record `original_path:`); for clipper-converted markdown, treat the markdown itself as the original and skip the duplicate. Delete the inbox copy.
+   f. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "<type>"` (updates `wiki/index.md` only).
 
-3. **For each PDF in inbox**:
-   a. Run `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/extract-metadata.sh" <pdf>` to grab the first-page text.
+3. **For each PDF in inbox** — first, if PageIndex is set up and there are more than 3 PDFs, tell the user how many trees would be built (~30s-2min and a few cents of API cost each) and confirm before proceeding:
+   a. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/extract-metadata.sh" <pdf>` to grab the first-page text.
    b. Read it; infer author/org + year + 1-2-word keyword. Decide `type` (paper / report / manual / filing / guideline).
    c. Derive the slug:
       ```bash
-      SLUG=$(bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/derive-slug.sh" "<entity>" "<year>" "<keyword>" .vault)
+      SLUG=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/derive-slug.sh" "<entity>" "<year>" "<keyword>" .vault)
       ```
    d. Move (don't copy) the PDF to `.vault/originals/<slug>.pdf`.
    e. **If PageIndex is set up**:
       ```bash
-      bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
       ```
       On success: render the body via `render-tree-outline.sh`. On failure: fall back to `pdftotext` + condense.
    f. Run `ingest.sh` to create the raw file skeleton, then Edit to fill the body, then `update-frontmatter.sh` to record `original_path`, `original_filename`, `has_tree`, `tree_path`, `pages`.

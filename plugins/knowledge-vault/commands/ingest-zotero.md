@@ -36,7 +36,7 @@ The collection name or keyword is in `$ARGUMENTS`. Requires the `zotero-mcp` ser
       - Falls back to title-based slug only if neither author nor org is present.
       - Run the helper to sanitize and disambiguate:
         ```bash
-        SLUG=$(bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/derive-slug.sh" "<entity>" "<year>" "<keyword>" .vault)
+        SLUG=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/derive-slug.sh" "<entity>" "<year>" "<keyword>" .vault)
         ```
 
    e. **Extract fields** from the metadata response:
@@ -49,12 +49,13 @@ The collection name or keyword is in `$ARGUMENTS`. Requires the `zotero-mcp` ser
 
    f. **Create the raw file skeleton**:
       ```bash
-      bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/ingest-zotero.sh" "<slug>" "<title>" "<zotero_key>" "<citekey>" "<doi>" "<year>" "<authors_csv>" [tags...]
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/ingest-zotero.sh" "<slug>" "<title>" "<zotero_key>" "<citekey>" "<doi>" "<year>" "<authors_csv>" "<type>" "<has_fulltext>" [tags...]
       ```
+      `<type>` is the type decided in step d (`paper` default; `report`/`manual`/`filing`/`guideline` for institutional items). `<has_fulltext>` is `true` when step b fetched fulltext, else `false` — this is what `/knowledge-vault:enrich-references` scans for.
 
    f2. **Preserve the original PDF + (optionally) build tree** — only when Zotero exposes a local PDF path or returns the file bytes:
       - Copy the PDF to `.vault/originals/<slug>.pdf` (rename to slug). Record `original_path: originals/<slug>.pdf` and the incoming filename in `original_filename:` via `update-frontmatter.sh`.
-      - **If PageIndex is set up**, run `bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault`.
+      - **If PageIndex is set up**, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault`.
       - On tree success: render the body via `render-tree-outline.sh` (skip step g's flat condense for sections that the tree covers; metadata still goes in via step g).
       - On tree failure or PageIndex absent: continue to step g (flat condense from fulltext + annotations).
 
@@ -89,7 +90,7 @@ The collection name or keyword is in `$ARGUMENTS`. Requires the `zotero-mcp` ser
 
    h. **Update index**:
       ```bash
-      bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/index-append.sh" "<slug>" "paper"
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "<type>"
       ```
 
 6. **Final report**: "Ingested N papers from collection `<name>`. Run `/knowledge-vault:compile` now to build summaries and concepts?"

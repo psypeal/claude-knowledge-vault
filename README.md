@@ -76,7 +76,7 @@ Release notes are tracked in the [Changelog](./CHANGELOG.md).
 /reload-plugins
 ```
 
-No config, no dependencies, no API keys.
+No config, no API keys. The helper scripts require `python3` (present on nearly all systems); everything else is optional.
 
 ### Update
 
@@ -90,6 +90,14 @@ Then reload so the new commands, scripts, and fixes take effect:
 
 ```bash
 /reload-plugins
+```
+
+**Upgrading from ≤2.4.1?** The marketplace was renamed from `claude-knowledge-vault` to `knowledge-vault` (matching the renamed GitHub repo). If you originally added `psypeal/claude-knowledge-vault`, remove and re-add once:
+
+```bash
+/plugin marketplace remove claude-knowledge-vault
+/plugin marketplace add psypeal/knowledge-vault
+/plugin install knowledge-vault@knowledge-vault
 ```
 
 If auto-update is enabled for this marketplace, the plugin updates automatically during the marketplace refresh. Otherwise, toggle it via `/plugin` → **Marketplaces** → select `knowledge-vault` → **Enable auto-update**.
@@ -430,7 +438,7 @@ Target a single item with `/knowledge-vault:enrich-references <slug>`.
 
 - Body: replaced with condensed fulltext extraction (Metadata / Abstract / Key Findings / Methods / Quantitative Data), same structure as Zotero ingestion.
 - Frontmatter: `has_fulltext: true` and `compiled: false` (so `/knowledge-vault:compile` picks it up next pass).
-- No PDFs are stored in the vault — only the extracted text. The plugin does not host or mirror any paper content.
+- The fetched PDF is preserved at `.vault/originals/<slug>.pdf` for your own audit/reading (v2.4+). The plugin does not host, mirror, or redistribute any paper content — the copy stays local to your vault; keep `.vault/originals/` out of public repos (`.gitignore` it) if the material is paywalled.
 
 ### Coverage
 
@@ -445,7 +453,10 @@ Every PDF that lands in the vault — whether from Zotero, Unpaywall/Sci-Hub enr
 ### What a tree looks like
 
 ```jsonc
-[
+{
+  "doc_name": "vaswani-2017-attention.pdf",
+  "doc_description": "Introduces the Transformer architecture…",
+  "structure": [
   {
     "title": "Methods",
     "node_id": "0003",
@@ -458,7 +469,8 @@ Every PDF that lands in the vault — whether from Zotero, Unpaywall/Sci-Hub enr
     ]
   },
   { "title": "Results", "node_id": "0004", "start_index": 8, "end_index": 14, "summary": "..." }
-]
+  ]
+}
 ```
 
 ### Slug rules

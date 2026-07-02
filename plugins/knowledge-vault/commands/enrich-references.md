@@ -29,7 +29,7 @@ Record which sources are available. If both, Unpaywall runs first per item and S
 ### 2. Scan candidates
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/enrich-references.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/enrich-references.sh"
 ```
 
 This returns `{"candidates": [{slug, doi, file, title, year}], "count": N}`.
@@ -51,11 +51,11 @@ This returns `{"candidates": [{slug, doi, file, title, year}], "count": N}`.
    - **Preserve the original** under `.vault/originals/<slug>.pdf` (do NOT `rm` it after extraction). Today's slug for reference-only items is the existing one — keep it; rename-on-ingest is for the ingest path. Record the incoming filename in frontmatter as `original_filename:` for provenance, and set `original_path: originals/<slug>.pdf`.
    - **If PageIndex is set up** (vendor/PageIndex/.env present, python3 + deps available):
      ```bash
-     bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
      ```
      - On success (`exit 0`): tree saved to `raw/<slug>.tree.json`. Render the body via:
        ```bash
-       bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/render-tree-outline.sh" .vault/raw/<slug>.tree.json
+       bash "${CLAUDE_PLUGIN_ROOT}/scripts/render-tree-outline.sh" .vault/raw/<slug>.tree.json
        ```
        Use Edit to replace the raw file's body with the rendered outline (keep frontmatter intact). Set frontmatter `has_tree: true`, `tree_path: <slug>.tree.json`.
      - On failure (any non-zero exit): set `has_tree: false`, log the failure, and proceed to flat-condense fallback below.
@@ -65,12 +65,12 @@ This returns `{"candidates": [{slug, doi, file, title, year}], "count": N}`.
      - **Condense** following the same structure as `/knowledge-vault:ingest-zotero` step 5g: Metadata / Abstract / Key Findings / Methods / Quantitative Data, capped at ~800-1200 words. Use Edit to replace the raw file's body (keep frontmatter intact).
    - Flip the fulltext flag and record paths:
      ```bash
-     bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-frontmatter.sh" <raw-file> has_fulltext=true original_path=originals/<slug>.pdf
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-frontmatter.sh" <raw-file> has_fulltext=true original_path=originals/<slug>.pdf
      ```
    - Clean up the temp file: `rm -f /tmp/kv-enrich-<slug>.pdf /tmp/kv-enrich-<slug>.txt`. Keep the copy in `originals/`.
    - If the item has a compiled summary already, mark it stale so `/knowledge-vault:compile` will regenerate:
      ```bash
-     bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/update-frontmatter.sh" <raw-file> compiled=false
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-frontmatter.sh" <raw-file> compiled=false
      ```
    - Record result: `{slug, source: "unpaywall" | "scihub", status: "enriched", tree_built: true|false}`
 

@@ -19,6 +19,9 @@ print(f'{len(s)} {sum(1 for x in s if not x.get(\"compiled\"))}')" 2>/dev/null)
     TOTAL=$(echo "$STATS" | cut -d' ' -f1)
     PENDING=$(echo "$STATS" | cut -d' ' -f2)
 fi
+# Guard against a failed stats parse (corrupt manifest, missing python3)
+case "$TOTAL" in ''|*[!0-9]*) TOTAL=0 ;; esac
+case "$PENDING" in ''|*[!0-9]*) PENDING=0 ;; esac
 
 CLIPPINGS=$(find "$VAULT_DIR/Clippings" -name "*.md" 2>/dev/null | wc -l)
 

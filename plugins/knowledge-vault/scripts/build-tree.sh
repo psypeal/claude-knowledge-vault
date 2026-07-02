@@ -24,7 +24,7 @@ if [ ! -f "$RUNNER" ]; then
     exit 2
 fi
 
-if ! python3 -c "import litellm, pymupdf, dotenv" 2>/dev/null; then
+if ! python3 -c "import litellm, pymupdf, dotenv, yaml, PyPDF2" 2>/dev/null; then
     echo "PageIndex Python dependencies not installed. Run: pip3 install -r $PAGEINDEX_DIR/requirements.txt" >&2
     exit 2
 fi
@@ -50,7 +50,10 @@ fi
 
 OUT_DIR="$VAULT_DIR/raw"
 TARGET="$OUT_DIR/$SLUG.tree.json"
-PDF_BASENAME="$(basename "$PDF_PATH" .pdf)"
+# Match run_pageindex.py's os.path.splitext: strip the final extension whatever
+# its case ("Paper.PDF" -> "Paper"), so we look for the same results filename.
+PDF_FILENAME="$(basename "$PDF_PATH")"
+PDF_BASENAME="${PDF_FILENAME%.*}"
 
 # PageIndex writes to ./results/<pdfname>_structure.json relative to CWD.
 WORK_DIR="$(mktemp -d)"

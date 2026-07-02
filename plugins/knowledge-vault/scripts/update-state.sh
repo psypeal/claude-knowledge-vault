@@ -7,7 +7,9 @@
 set -euo pipefail
 
 VAULT_DIR="${1:-.vault}"
-shift
+if [ $# -gt 0 ]; then
+    shift
+fi
 
 STATE="$VAULT_DIR/wiki/.state.json"
 

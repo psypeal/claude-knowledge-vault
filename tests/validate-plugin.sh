@@ -121,7 +121,7 @@ test "$(grep -c '^## Knowledge Vault$' "$project/AGENTS.md")" -eq 1
     ! printf '%s' "$detection" | grep -Eq 'Authorization|Bearer |http_headers|api[_-]?key'
 
     bash "$PLUGIN/scripts/ingest.sh" test-2026-source 'A "quoted" source' notes 'tag one' 'tag"two' >/dev/null
-    bash "$PLUGIN/scripts/update-frontmatter.sh" .vault/raw/test-2026-source.md has_tree=false original_path=originals/test-2026-source.pdf >/dev/null
+    bash "$PLUGIN/scripts/update-frontmatter.sh" .vault/raw/test-2026-source.md has_tree=false original_path=originals/test-2026-source.pdf 'source=https://example.com/a: b' >/dev/null
     bash "$PLUGIN/scripts/index-append.sh" test-2026-source notes >/dev/null
     bash "$PLUGIN/scripts/ingest-zotero.sh" zotero-2026-source 'A Zotero "source"' ZKEY CITE '10.1000/test' 2026 'Doe, Jane|Smith, John' report false zotero-tag >/dev/null
 
@@ -137,6 +137,7 @@ assert source['tags'] == ['tag one', 'tag"two']
 raw = Path('.vault/raw/test-2026-source.md').read_text()
 assert 'has_tree: false' in raw
 assert 'original_path: originals/test-2026-source.pdf' in raw
+assert 'source: "https://example.com/a: b"' in raw
 
 index = Path('.vault/wiki/index.md').read_text()
 assert '- `test-2026-source` (notes)' in index

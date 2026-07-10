@@ -2,6 +2,13 @@
 
 All notable changes for Knowledge Vault.
 
+## [2.5.1] - 2026-07-10
+
+### Changed
+
+- Integrated the parallel `2.4.2` integrity audit into the native Codex architecture: manifest-first ingestion, Zotero full-text state, clipping registration, PDF validation, YAML-safe updates, and malformed metadata handling.
+- Added root repository licensing and regression coverage for corrupt manifests, special-character paths, Zotero state, Codex installation, and Claude manifest validation.
+
 ## [2.5.0] - 2026-07-10
 
 ### Added
@@ -18,7 +25,15 @@ All notable changes for Knowledge Vault.
 - Replaced the long README with a concise Claude Code and Codex operator guide.
 - Replaced the bundled PageIndex source tree with an opt-in installer pinned to a reviewed upstream revision.
 - Stopped writing API keys into the installed plugin directory.
-- Incorporated the `2.4.2` integrity fixes for manifest-first ingestion, Zotero full-text state, clipping registration, PDF validation, and malformed metadata handling.
+
+## [2.4.2] - 2026-06-11
+
+### Fixed
+
+- Restored literal `CLAUDE_PLUGIN_ROOT` usage in Claude command templates and completed the marketplace rename.
+- Fixed clipping registration, Zotero full-text state, manifest-first ingestion, and malformed configuration handling.
+- Removed shell-to-Python interpolation from helper scripts and added safer YAML, PDF, PageIndex, and status handling.
+- Added the documented inbox directory and repository-root license.
 
 ## [2.4.1] - 2026-05-28
 

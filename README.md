@@ -164,6 +164,14 @@ Removing the plugin does not delete project `.vault/` directories.
 
 The `.vault/` format remains backward compatible. Re-running initialization refreshes missing `AGENTS.md` or `CLAUDE.md` guidance without replacing vault data.
 
+Installs from `2.4.1` or earlier may still use the old marketplace name. Re-add it once:
+
+```text
+/plugin marketplace remove claude-knowledge-vault
+/plugin marketplace add psypeal/knowledge-vault
+/plugin install knowledge-vault@knowledge-vault
+```
+
 For v2.3 vaults, run cleanup to backfill preserved originals and optional PageIndex trees. Existing slugs remain unchanged so wikilinks do not break.
 
 If upgrading from the original standalone Claude skill, remove it before installing the plugin:

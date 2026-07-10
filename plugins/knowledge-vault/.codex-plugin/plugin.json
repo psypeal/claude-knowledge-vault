@@ -33,7 +33,7 @@
     ],
     "websiteURL": "https://github.com/psypeal/knowledge-vault",
     "privacyPolicyURL": "https://github.com/psypeal/knowledge-vault/blob/main/PRIVACY.md",
-    "termsOfServiceURL": "https://github.com/psypeal/knowledge-vault/blob/main/plugins/knowledge-vault/LICENSE",
+    "termsOfServiceURL": "https://github.com/psypeal/knowledge-vault/blob/main/LICENSE",
     "defaultPrompt": [
       "Initialize a knowledge vault in this project",
       "Collect recent papers about this topic",

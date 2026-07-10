@@ -21,7 +21,7 @@ Drop here only when tier 2 lacks the *specific* detail (an exact statistic, a nu
 If no tree exists for any candidate, skip to tier 4 with the raw markdown body instead.
 
 ### Tier 4 — Source extraction
-Pull just the relevant pages from the original document:
+Pull just the relevant pages from the original document. First run `command -v pdftotext`. If it is missing, tell the user to install Poppler and answer from tier 2/3 evidence instead of failing.
 
 ```bash
 pdftotext -f <start_index> -l <end_index> .vault/originals/<slug>.pdf -

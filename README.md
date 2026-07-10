@@ -3,7 +3,7 @@
 A local research knowledge base for Codex and Claude Code. Ingest papers, URLs, notes, and Zotero collections; compile linked summaries and concepts; ask grounded questions; browse the result in Obsidian.
 
 [![Release](https://img.shields.io/github/v/release/psypeal/knowledge-vault)](https://github.com/psypeal/knowledge-vault/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](plugins/knowledge-vault/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Codex](https://img.shields.io/badge/Codex-plugin-111827.svg)](https://help.openai.com/en/articles/20001256-plugins-in-codex)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-7C3AED.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
@@ -196,4 +196,4 @@ Knowledge Vault builds on ideas from [Andrej Karpathy's LLM knowledge-base workf
 
 ## License
 
-[MIT](plugins/knowledge-vault/LICENSE)
+[MIT](LICENSE)

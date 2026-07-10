@@ -38,6 +38,30 @@ for arg in sys.argv[2:]:
         val = 'false'
     updates[key] = val
 
+
+def yaml_value(value):
+    """Return a safe YAML scalar while preserving booleans and numbers."""
+    if value in ('true', 'false', 'null'):
+        return value
+    if value == '':
+        return '""'
+    try:
+        float(value)
+        return value
+    except ValueError:
+        pass
+    needs_quoting = (
+        ': ' in value
+        or value.endswith(':')
+        or ' #' in value
+        or value[0] in "'\"{[#&*!|>%@`"
+        or value != value.strip()
+    )
+    if needs_quoting:
+        escaped = value.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{escaped}"'
+    return value
+
 with open(filepath, 'r', encoding='utf-8') as f:
     content = f.read()
 
@@ -58,7 +82,7 @@ for line in fm_lines:
     if ':' in line:
         key = line.split(':')[0].strip()
         if key in updates:
-            new_fm_lines.append(f'{key}: {updates[key]}')
+            new_fm_lines.append(f'{key}: {yaml_value(updates[key])}')
             updated_keys.add(key)
             continue
     new_fm_lines.append(line)
@@ -66,7 +90,7 @@ for line in fm_lines:
 # Add any new keys not already in frontmatter
 for key, val in updates.items():
     if key not in updated_keys:
-        new_fm_lines.append(f'{key}: {val}')
+        new_fm_lines.append(f'{key}: {yaml_value(val)}')
 
 new_content = '---\n' + '\n'.join(new_fm_lines) + '\n---' + parts[2]
 

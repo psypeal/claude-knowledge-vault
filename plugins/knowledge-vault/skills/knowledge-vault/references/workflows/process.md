@@ -11,11 +11,12 @@ Before running a helper, set `KV_PLUGIN_ROOT` to `CLAUDE_PLUGIN_ROOT` when avail
 2. **For each Markdown / HTML clipping**:
    a. Read it. Extract title and metadata from YAML frontmatter (Obsidian Web Clipper format).
    b. Derive a slug from the title (title-based, as in v2.3 — clips are `type: clip` or `type: article`).
-   c. Move to `raw/<slug>.md` (reformat frontmatter to vault schema if needed).
-   d. Move the original to `.vault/originals/<slug>.<ext>` if it's HTML; for clipper-converted markdown, treat the markdown itself as the original and skip the duplicate.
-   e. Add entry to `raw/.manifest.json` via `index-append.sh`.
+   c. Run `bash "${KV_PLUGIN_ROOT}/scripts/ingest.sh" "<slug>" "<title>" "<type>"`. This creates the raw skeleton and manifest entry; compile is manifest-driven.
+   d. Fill `raw/<slug>.md` with the clipping body and update its `source` plus clipper metadata.
+   e. Move the input artifact to `.vault/originals/<slug>.<ext>`, record `original_path`, and remove the inbox copy.
+   f. Run `bash "${KV_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "<type>"` to update only the wiki index.
 
-3. **For each PDF in inbox**:
+3. **For each PDF in inbox**: if PageIndex is ready and more than three PDFs are queued, report the count and approximate per-file API work, then confirm before building the batch of trees.
    a. Run `bash "${KV_PLUGIN_ROOT}/scripts/extract-metadata.sh" <pdf>` to grab the first-page text.
    b. Read it; infer author/org + year + 1-2-word keyword. Decide `type` (paper / report / manual / filing / guideline).
    c. Derive the slug:
@@ -28,7 +29,7 @@ Before running a helper, set `KV_PLUGIN_ROOT` to `CLAUDE_PLUGIN_ROOT` when avail
       bash "${KV_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
       ```
       On success: render the body via `render-tree-outline.sh`. On failure: fall back to `pdftotext` + condense.
-   f. Run `ingest.sh` to create the raw file skeleton, fill the body with the host's file-editing tools, then run `update-frontmatter.sh` to record `original_path`, `original_filename`, `has_tree`, `tree_path`, and `pages`.
+   f. Run `ingest.sh` to create the raw file and manifest entry, fill the body with the host's file-editing tools, then run `update-frontmatter.sh` to record `original_path`, `original_filename`, `has_tree`, `tree_path`, and `pages`.
    g. `index-append.sh "<slug>" "<type>"`.
 
 4. **Compile pass**: follow the compile skill for all pending sources in one batch pass; do not compile one-by-one.

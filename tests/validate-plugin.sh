@@ -85,6 +85,12 @@ for name in commands:
         relative_workflow = f"skills/knowledge-vault/references/workflows/{name}.md"
         assert relative_workflow in command.read_text(), f"command does not route to workflow: {name}"
 
+workflow_root = plugin / "skills" / "knowledge-vault" / "references" / "workflows"
+assert "/scripts/ingest.sh" in (workflow_root / "process.md").read_text()
+assert "<has_fulltext>" in (workflow_root / "ingest-zotero.md").read_text()
+assert "command -v pdftotext" in (workflow_root / "query.md").read_text()
+assert "EVERY recovery method" in (workflow_root / "cleanup.md").read_text() or "every recovered file" in (workflow_root / "cleanup.md").read_text()
+
 print(f"manifests-ok version={versions.pop()} skills={len(skill_names)} commands={len(commands)}")
 PY
 
@@ -94,7 +100,7 @@ done < <(find "$PLUGIN/scripts" "$PLUGIN/hooks" -type f -name '*.sh' | sort)
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
-project="$tmp_dir/project"
+project="$tmp_dir/project's vault"
 mkdir -p "$project"
 
 bash "$PLUGIN/scripts/init.sh" "$project" >/dev/null
@@ -117,6 +123,7 @@ test "$(grep -c '^## Knowledge Vault$' "$project/AGENTS.md")" -eq 1
     bash "$PLUGIN/scripts/ingest.sh" test-2026-source 'A "quoted" source' notes 'tag one' 'tag"two' >/dev/null
     bash "$PLUGIN/scripts/update-frontmatter.sh" .vault/raw/test-2026-source.md has_tree=false original_path=originals/test-2026-source.pdf >/dev/null
     bash "$PLUGIN/scripts/index-append.sh" test-2026-source notes >/dev/null
+    bash "$PLUGIN/scripts/ingest-zotero.sh" zotero-2026-source 'A Zotero "source"' ZKEY CITE '10.1000/test' 2026 'Doe, Jane|Smith, John' report false zotero-tag >/dev/null
 
     python3 - <<'PY'
 import json
@@ -133,11 +140,32 @@ assert 'original_path: originals/test-2026-source.pdf' in raw
 
 index = Path('.vault/wiki/index.md').read_text()
 assert '- `test-2026-source` (notes)' in index
+
+zotero = Path('.vault/raw/zotero-2026-source.md').read_text()
+assert 'type: report' in zotero
+assert 'has_fulltext: false' in zotero
 PY
+
+    printf '{invalid json' > invalid-tree.json
+    if bash "$PLUGIN/scripts/render-tree-outline.sh" invalid-tree.json >/dev/null 2>&1; then
+        echo "invalid tree JSON unexpectedly passed" >&2
+        exit 1
+    fi
 )
+
+corrupt_project="$tmp_dir/corrupt-project"
+mkdir -p "$corrupt_project"
+bash "$PLUGIN/scripts/init.sh" "$corrupt_project" >/dev/null
+printf '{invalid json' > "$corrupt_project/.vault/raw/.manifest.json"
+if (cd "$corrupt_project" && bash "$PLUGIN/scripts/ingest.sh" orphan source notes >/dev/null 2>&1); then
+    echo "ingest unexpectedly accepted a corrupt manifest" >&2
+    exit 1
+fi
+test ! -e "$corrupt_project/.vault/raw/orphan.md"
 
 if command -v codex >/dev/null 2>&1; then
     codex_home="$tmp_dir/codex-home"
+    plugin_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$PLUGIN/.codex-plugin/plugin.json")"
     mkdir -p "$codex_home"
     CODEX_HOME="$codex_home" codex plugin marketplace add "$ROOT" --json >/dev/null
     install_json="$(CODEX_HOME="$codex_home" codex plugin add knowledge-vault@knowledge-vault --json)"
@@ -145,9 +173,9 @@ if command -v codex >/dev/null 2>&1; then
 import json, sys
 result = json.load(sys.stdin)
 assert result["name"] == "knowledge-vault"
-assert result["version"] == "2.5.0"
-'
-    test -f "$codex_home/plugins/cache/knowledge-vault/knowledge-vault/2.5.0/skills/knowledge-vault/SKILL.md"
+assert result["version"] == sys.argv[1]
+' "$plugin_version"
+    test -f "$codex_home/plugins/cache/knowledge-vault/knowledge-vault/$plugin_version/skills/knowledge-vault/SKILL.md"
     echo "codex-install-ok"
 fi
 

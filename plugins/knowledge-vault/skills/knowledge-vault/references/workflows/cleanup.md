@@ -47,11 +47,11 @@ Before running a helper, set `KV_PLUGIN_ROOT` to `CLAUDE_PLUGIN_ROOT` when avail
       Then ask: `Backfill which? (all / zotero-only / doi-only / url-only / pick / no)`. Treat any clearly negative reply as `no` and skip.
 
    d. **For each candidate selected**, recover the PDF using the appropriate method:
-      - **`from_zotero`**: call `mcp__zotero__zotero_get_item_fulltext` with the stored `zotero_key`. Write the returned bytes to `/tmp/kv-backfill-<slug>.pdf`. If the MCP returns no PDF (item is reference-only in Zotero too), record `status: "no-pdf-found"` and skip.
+      - **`from_zotero`**: use the stored `zotero_key` to locate an actual local PDF attachment and copy it to `/tmp/kv-backfill-<slug>.pdf`. Extracted text is not a PDF and must never be saved with a `.pdf` extension. If no attachment is available, record `status: "no-pdf-found"` and skip.
       - **`from_doi`**: follow the enrich-references logic — try Unpaywall first (if `UNPAYWALL_EMAIL` is set), then Sci-Hub (if the marker and MCP tools are present). Save the PDF to `/tmp/kv-backfill-<slug>.pdf`.
       - **`from_url`**: `curl -L -o /tmp/kv-backfill-<slug>.pdf "<source>"` (permission prompt). Verify the response is actually a PDF (`file /tmp/kv-backfill-<slug>.pdf | grep -q PDF`). If not (login wall, captcha, etc.), record `status: "url-returned-non-pdf"` and skip.
 
-   e. **Preserve, build tree, update frontmatter** (same flow regardless of recovery method):
+   e. **Preserve, build tree, update frontmatter** (same flow regardless of recovery method). First verify every recovered file with `file /tmp/kv-backfill-<slug>.pdf | grep -q PDF`; if validation fails, record `status: "recovered-non-pdf"` and skip. Otherwise:
       ```bash
       mkdir -p .vault/originals
       mv /tmp/kv-backfill-<slug>.pdf .vault/originals/<slug>.pdf

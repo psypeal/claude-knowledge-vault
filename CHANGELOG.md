@@ -18,6 +18,7 @@ All notable changes for Knowledge Vault.
 - Replaced the long README with a concise Claude Code and Codex operator guide.
 - Replaced the bundled PageIndex source tree with an opt-in installer pinned to a reviewed upstream revision.
 - Stopped writing API keys into the installed plugin directory.
+- Incorporated the `2.4.2` integrity fixes for manifest-first ingestion, Zotero full-text state, clipping registration, PDF validation, and malformed metadata handling.
 
 ## [2.4.1] - 2026-05-28
 

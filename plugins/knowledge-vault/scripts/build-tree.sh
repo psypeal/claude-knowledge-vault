@@ -44,7 +44,7 @@ if [ ! -f "$RUNNER" ]; then
     exit 2
 fi
 
-if [ -z "$PYTHON" ] || ! "$PYTHON" -c "import litellm, pymupdf, dotenv" 2>/dev/null; then
+if [ -z "$PYTHON" ] || ! "$PYTHON" -c "import litellm, pymupdf, PyPDF2, dotenv, yaml" 2>/dev/null; then
     echo "PageIndex dependencies are unavailable. Run the PageIndex section of the setup-sources workflow." >&2
     exit 2
 fi
@@ -69,7 +69,8 @@ fi
 
 OUT_DIR="$VAULT_DIR/raw"
 TARGET="$OUT_DIR/$SLUG.tree.json"
-PDF_BASENAME="$(basename "$PDF_PATH" .pdf)"
+PDF_BASENAME="$(basename "$PDF_PATH")"
+PDF_BASENAME="${PDF_BASENAME%.*}"
 
 # PageIndex writes to ./results/<pdfname>_structure.json relative to CWD.
 WORK_DIR="$(mktemp -d)"

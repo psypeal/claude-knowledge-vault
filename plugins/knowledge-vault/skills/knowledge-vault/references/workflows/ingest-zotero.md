@@ -42,11 +42,13 @@ The collection name or keyword is in `$ARGUMENTS`. Requires the `zotero-mcp` ser
       - `doi` — DOI if present (else empty string)
       - `year` — publication year as integer (else empty string)
       - `authors_csv` — **pipe-separated** list of author names (use `|` as separator, not comma — authors often have commas in their names)
+      - `type` — normalized vault type (`paper` by default; institutional items may be `report`, `manual`, `filing`, or `guideline`)
+      - `has_fulltext` — `true` only when full text was fetched; otherwise `false`
       - `tags` — Zotero item tags (filter to alphanumeric + hyphens)
 
    f. **Create the raw file skeleton**:
       ```bash
-      bash "${KV_PLUGIN_ROOT}/scripts/ingest-zotero.sh" "<slug>" "<title>" "<zotero_key>" "<citekey>" "<doi>" "<year>" "<authors_csv>" [tags...]
+      bash "${KV_PLUGIN_ROOT}/scripts/ingest-zotero.sh" "<slug>" "<title>" "<zotero_key>" "<citekey>" "<doi>" "<year>" "<authors_csv>" "<type>" "<has_fulltext>" [tags...]
       ```
 
    f2. **Preserve the original PDF + (optionally) build tree** — only when Zotero exposes a local PDF path or returns the file bytes:
@@ -86,7 +88,7 @@ The collection name or keyword is in `$ARGUMENTS`. Requires the `zotero-mcp` ser
 
    h. **Update index**:
       ```bash
-      bash "${KV_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "paper"
+      bash "${KV_PLUGIN_ROOT}/scripts/index-append.sh" "<slug>" "<type>"
       ```
 
 6. **Final report**: "Ingested N papers from collection `<name>`. Compile them now?"

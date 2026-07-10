@@ -22,6 +22,9 @@ PYEOF
     PENDING=$(echo "$STATS" | cut -d' ' -f2)
 fi
 
+case "$TOTAL" in ''|*[!0-9]*) TOTAL=0 ;; esac
+case "$PENDING" in ''|*[!0-9]*) PENDING=0 ;; esac
+
 CLIPPINGS=$(find "$VAULT_DIR/Clippings" -name "*.md" 2>/dev/null | wc -l)
 
 MSG="Knowledge vault active: $TOTAL sources"

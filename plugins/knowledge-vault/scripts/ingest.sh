@@ -38,7 +38,7 @@ fi
 
 # Create raw file and update manifest via Python (safe against special chars in title)
 python3 - "$SLUG" "$TITLE" "$TYPE" "$TIMESTAMP" "$RAW_FILE" "$MANIFEST" "${TAGS[@]}" << 'PYEOF'
-import json, sys, os
+import json, sys
 
 slug = sys.argv[1]
 title = sys.argv[2]
@@ -48,8 +48,23 @@ raw_file = sys.argv[5]
 manifest_path = sys.argv[6]
 tags = list(sys.argv[7:])
 
+# Validate the manifest before creating a raw file.
+try:
+    with open(manifest_path, 'r') as f:
+        manifest = json.load(f)
+except FileNotFoundError:
+    print(f'Error: {manifest_path} not found. Run the initialize workflow first.')
+    sys.exit(1)
+except json.JSONDecodeError as error:
+    print(f'Error: {manifest_path} is corrupt ({error}). Fix it before ingesting.')
+    sys.exit(1)
+
+if any(source.get('slug') == slug for source in manifest.get('sources', [])):
+    print(f"Error: slug '{slug}' already exists in the manifest")
+    sys.exit(1)
+
 def yaml_esc(value):
-    return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
+    return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ').replace('\r', ' ')
 
 yaml_title = yaml_esc(title)
 
@@ -69,15 +84,6 @@ with open(raw_file, 'w') as f:
     f.write(f'tags: {tags_yaml}\n')
     f.write(f'compiled: false\n')
     f.write(f'---\n\n')
-
-# Update manifest
-with open(manifest_path, 'r') as f:
-    manifest = json.load(f)
-
-if any(source.get('slug') == slug for source in manifest.get('sources', [])):
-    os.remove(raw_file)
-    print(f"Error: slug '{slug}' already exists in the manifest")
-    sys.exit(1)
 
 manifest['sources'].append({
     'slug': slug,

@@ -20,9 +20,8 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
    **Metadata extraction chain** (use the first that yields author/org + year + keyword):
    1. Source already provides structured metadata (PubMed/Scholar MCP, DOI lookup) → use directly.
    2. Source URL has a DOI in path → query Crossref `https://api.crossref.org/works/<doi>` with the host's web tool.
-   3. Source is a PDF and PageIndex is set up → run tree-build first; the resulting `tree.json` carries a `doc_description` with title/authors info.
-   4. Source is a PDF, PageIndex unavailable → run `bash "${KV_PLUGIN_ROOT}/scripts/extract-metadata.sh" <pdf>` (returns first-page text); read it and extract author/org + year + 1-2-word keyword.
-   5. All else fails → fall back to title-based slug. Set frontmatter `slug_source: title-fallback` so the user can rename later.
+   3. Source is a PDF → run `bash "${KV_PLUGIN_ROOT}/scripts/extract-metadata.sh" <pdf>`; infer author/org + year + keyword from the first-page text. Build the tree once later, after the slug exists.
+   4. All else fails → fall back to title-based slug. Set frontmatter `slug_source: title-fallback` so the user can rename later.
 
    Then sanitize and disambiguate:
    ```bash
@@ -82,6 +81,7 @@ The source is provided in `$ARGUMENTS`. Accept: URL, file path, pasted text, or 
    - `has_tree: true|false`
    - `tree_path: <slug>.tree.json` (only when has_tree=true)
    - `pages: <N>` (when known)
+   - `has_fulltext: true|false` (`false` for metadata/abstract-only references so enrich-references can find them)
 
 8. **Update index** (via script — no need to read index.md):
    ```bash

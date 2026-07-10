@@ -1,5 +1,6 @@
 ---
 description: Process inbox files and compile pending sources
+disable-model-invocation: true
 ---
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/knowledge-vault/references/workflows/process.md` and follow it. Treat `$ARGUMENTS` as the workflow input.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/knowledge-vault/SKILL.md`, then follow its `process` workflow with `$ARGUMENTS`.

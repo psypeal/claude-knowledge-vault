@@ -1,87 +1,79 @@
-Before running a helper, set `KV_PLUGIN_ROOT` to `CLAUDE_PLUGIN_ROOT` when available; otherwise resolve the absolute plugin directory two levels above the parent `skills/knowledge-vault/SKILL.md`. Substitute that absolute path in each command.
+# Cleanup
 
 ## Procedure
 
-0. Read `.vault/preferences.md` only if not already read in this session.
-1. **Context building**: Read `wiki/index.md`, `wiki/_backlinks.json`, and scan all concept and summary articles. Map the full wiki structure.
-2. **Per-article audit** -- for each concept article, evaluate:
+0. Read `.vault/preferences.md` only if it has not already been read in this session.
+1. Read `.vault/wiki/index.md`, `.vault/wiki/_backlinks.json`, and the articles under `.vault/wiki/concepts/` and `.vault/wiki/summaries/`. Map the wiki before editing it.
+2. Audit each concept:
 
 | Check | Bad sign | Action |
-|:------|:---------|:-------|
-| Structure | Facts appended chronologically, not by theme | Restructure around themes |
-| Length | Over 80 lines | Split into sub-concept articles |
-| Length | Under 15 lines (stub) | Enrich from raw sources or flag |
-| Tone | Peacock words, editorial voice, rhetorical questions | Rewrite to factual, Wikipedia-flat tone |
-| Quotes | More than 2 direct quotes | Keep 2 most impactful, paraphrase rest |
-| Wikilinks | Missing connections to related concepts | Add `[[wikilinks]]` and update `related` |
-| Coherence | "Here are 4 sources that mention X" | Rewrite to "X matters because Y, supported by..." |
+|---|---|---|
+| Structure | Facts are appended chronologically | Restructure around themes |
+| Length | More than 80 lines | Split distinct sub-concepts |
+| Length | Fewer than 15 lines | Enrich from linked raw sources or flag |
+| Tone | Editorial language or rhetorical questions | Rewrite in a flat factual tone |
+| Quotes | More than two direct quotes | Keep at most two; paraphrase the rest |
+| Links | Missing or broken `[[wikilinks]]` | Add supported links or remove broken ones |
+| Coherence | Source-by-source list rather than synthesis | Organize around the concept and evidence |
 
-3. **Split overstuffed**: If 3+ distinct sub-topics in separate paragraphs, create dedicated concept articles. Update cross-references.
-4. **Enrich stubs**: For articles under 15 lines, re-read raw sources in `sources` frontmatter. Extract detail to reach 15+ lines.
-5. **Fix broken wikilinks**: `[[links]]` to non-existent articles -- create the missing article or remove the link.
-6. **Rebuild** (via script — no need to re-read every file):
-   ```bash
-   bash "${KV_PLUGIN_ROOT}/scripts/rebuild-index.sh"
+3. Split articles with three or more distinct subtopics. Update cross-references.
+4. Enrich stubs from the raw sources named in frontmatter. Do not add unsupported detail.
+5. Repair broken wikilinks by creating a supported article or removing the link.
+6. Rebuild generated indexes:
+
+   ```text
+   <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" rebuild
    ```
 
-7. **Backfill missing originals** (v2.3 → v2.4 migration; opt-in, re-runnable):
+7. Offer the backward-compatible original-file backfill only when legacy items need it:
 
-   v2.4 introduced `.vault/originals/` for preserved source PDFs and `raw/<slug>.tree.json` PageIndex sidecars. Items ingested under v2.3 don't have either. This step opportunistically recovers them.
+   ```text
+   <python> "${KV_PLUGIN_ROOT}/scripts/backfill_candidates.py" .vault
+   ```
 
-   a. **Scan candidates**:
-      ```bash
-      bash "${KV_PLUGIN_ROOT}/scripts/backfill-candidates.sh" .vault
-      ```
-      Returns `{categorized: {from_zotero, from_doi, from_url, unrecoverable}, counts, total_missing}`.
+   If `total_missing` is zero, skip. Otherwise show counts for `from_zotero`, `from_doi`, `from_url`, and `unrecoverable`, then ask which recoverable categories to process.
 
-   b. If `total_missing == 0`: report "All raw items already have preserved originals. Nothing to backfill." and skip the rest of this step.
+8. Recover each approved PDF without putting source metadata in shell syntax:
+   - **Zotero:** use the stored key to obtain a real local PDF attachment. Extracted text must not be labeled as PDF.
+   - **DOI:** use the enrich-references source order: Unpaywall, then explicitly enabled Sci-Hub.
+   - **URL:** write the source URL to `.vault/.staging/<slug>.download.json` and run the structured downloader exactly as documented in enrich-references.
 
-   c. **Present findings** in a compact table:
-      ```
-      Items missing original_path: <total_missing>
-        from Zotero (re-fetch via MCP):    <count>
-        from DOI (Unpaywall / Sci-Hub):    <count>
-        from URL (direct download):        <count>
-        unrecoverable (no source):         <count>
-      ```
-      Then ask: `Backfill which? (all / zotero-only / doi-only / url-only / pick / no)`. Treat any clearly negative reply as `no` and skip.
+   Every recovery method must produce a local file that passes `expected: "pdf"` validation. Login pages, captcha responses, and extracted text are failures.
 
-   d. **For each candidate selected**, recover the PDF using the appropriate method:
-      - **`from_zotero`**: use the stored `zotero_key` to locate an actual local PDF attachment and copy it to `/tmp/kv-backfill-<slug>.pdf`. Extracted text is not a PDF and must never be saved with a `.pdf` extension. If no attachment is available, record `status: "no-pdf-found"` and skip.
-      - **`from_doi`**: follow the enrich-references logic — try Unpaywall first (if `UNPAYWALL_EMAIL` is set), then Sci-Hub (if the marker and MCP tools are present). Save the PDF to `/tmp/kv-backfill-<slug>.pdf`.
-      - **`from_url`**: `curl -L -o /tmp/kv-backfill-<slug>.pdf "<source>"` (permission prompt). Verify the response is actually a PDF (`file /tmp/kv-backfill-<slug>.pdf | grep -q PDF`). If not (login wall, captcha, etc.), record `status: "url-returned-non-pdf"` and skip.
+9. Attach each validated recovery with `.vault/.staging/<slug>.attach.json`:
 
-   e. **Preserve, build tree, update frontmatter** (same flow regardless of recovery method). First verify every recovered file with `file /tmp/kv-backfill-<slug>.pdf | grep -q PDF`; if validation fails, record `status: "recovered-non-pdf"` and skip. Otherwise:
-      ```bash
-      mkdir -p .vault/originals
-      mv /tmp/kv-backfill-<slug>.pdf .vault/originals/<slug>.pdf
-      bash "${KV_PLUGIN_ROOT}/scripts/update-frontmatter.sh" \
-        .vault/raw/<slug>.md \
-        original_path=originals/<slug>.pdf
-      ```
-      **If PageIndex is set up** (dependencies and a supported model credential are available):
-      ```bash
-      bash "${KV_PLUGIN_ROOT}/scripts/build-tree.sh" .vault/originals/<slug>.pdf <slug> .vault
-      ```
-      On tree success: `update-frontmatter.sh ... has_tree=true tree_path=<slug>.tree.json`.
-      On tree failure or PageIndex absent: `update-frontmatter.sh ... has_tree=false`. Don't touch the markdown body.
+   ```json
+   {
+     "slug": "<slug>",
+     "original": {
+       "path": "<slug>.recovered.pdf",
+       "mode": "move",
+       "expected": "pdf",
+       "filename": "incoming.pdf"
+     },
+     "frontmatter": {
+       "has_tree": false
+     }
+   }
+   ```
 
-   f. **Important — preserve the existing slug**. Don't rename the file even if the slug is title-based (v2.3 style). Renaming would break every `[[wikilink]]` in `wiki/concepts/` and `wiki/summaries/` that references it. New ingests will use the v2.4 bibliographic slug; backfilled v2.3 items keep their original title-based slug. Slug heterogeneity is acceptable.
+   Use an absolute path and `mode: copy` for an MCP or Zotero-owned file. Then run:
 
-   g. **Don't replace the markdown body**. The v2.3 condensed body stays as-is; the tree.json sidecar is the new artifact. Wiki summaries that already cite the body keep working.
+   ```text
+   <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" attach-original --request .vault/.staging/<slug>.attach.json --cleanup-request
+   ```
 
-   h. **Final tally**:
-      ```
-      Backfill summary:
-        Originals preserved:       <N>
-        Trees built:               <T>
-        Recovery failed:           <F>  (no PDF found / non-PDF response)
-        Skipped (unrecoverable):   <U>
-      ```
-      List the failed slugs with their recovery method so the user can investigate manually.
+   The command preserves the existing slug and body, validates the PDF, and rolls back the raw update if attachment fails.
 
-8. Report: "Cleanup complete: X articles restructured, Y stubs enriched, Z articles split, W broken links fixed, B originals backfilled."
+10. When PageIndex is ready, optionally add a tree after attachment:
 
-**Writing quality**: Only read `${KV_PLUGIN_ROOT}/skills/knowledge-vault/references/writing-rules.md` if not already read in this session.
+    ```text
+    <python> "${KV_PLUGIN_ROOT}/scripts/build_tree.py" .vault/originals/<slug>.pdf <slug> .vault
+    <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" update-frontmatter .vault/raw/<slug>.md has_tree=true tree_path=<slug>.tree.json
+    ```
 
-**Context note**: Report only summary counts. Do not echo full article contents back to the user.
+    On failure, leave `has_tree: false`. Never rename a legacy slug or replace its existing condensed body during backfill.
+
+11. Report cleanup counts plus originals preserved, trees built, failed recoveries, and unrecoverable items. List failed slugs with their attempted recovery method.
+
+Read `${KV_PLUGIN_ROOT}/skills/knowledge-vault/references/writing-rules.md` only when writing or restructuring articles. Report summary counts, not full article contents.

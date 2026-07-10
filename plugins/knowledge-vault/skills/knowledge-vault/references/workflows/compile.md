@@ -1,5 +1,3 @@
-Before running a helper, set `KV_PLUGIN_ROOT` to `CLAUDE_PLUGIN_ROOT` when available; otherwise resolve the absolute plugin directory two levels above the parent `skills/knowledge-vault/SKILL.md`. Substitute that absolute path in each command.
-
 Your final response MUST be terse: "Compiled N sources, M concepts created/updated." or "Nothing pending." Do not echo file contents.
 
 ## Procedure
@@ -13,7 +11,7 @@ If `$ARGUMENTS` names a specific source slug, compile only that source. Otherwis
 
 2. **Plan phase**: Read each pending raw source. For each, note concepts to create/update and evidence to extract. If batch, output: "Plan: [list concepts and which sources feed them]". Merge overlapping concept work.
 3. **Execute phase**: Process each unique concept ONCE across all sources.
-   a. Write summaries (`wiki/summaries/<slug>.md`, 200-500 words):
+   a. Write summaries (`.vault/wiki/summaries/<slug>.md`, 200-500 words):
       ```yaml
       ---
       title: "Summary: Original Title"
@@ -24,21 +22,19 @@ If `$ARGUMENTS` names a specific source slug, compile only that source. Otherwis
       word_count: 350
       ---
       ```
-   b. For each UNIQUE concept, read the concept file ONCE (if existing), apply ALL updates, write ONCE.
-   c. Cross-reference: update `related` fields. Use `[[wikilinks]]` in bodies. Do NOT read `_backlinks.json` — the script handles that.
-4. **Mark compiled** — call BOTH scripts for EACH compiled source slug individually:
-   ```bash
-   bash "${KV_PLUGIN_ROOT}/scripts/update-frontmatter.sh" .vault/raw/SOURCE1.md compiled=true
-   bash "${KV_PLUGIN_ROOT}/scripts/update-manifest.sh" SOURCE1 compiled=true
-   bash "${KV_PLUGIN_ROOT}/scripts/update-frontmatter.sh" .vault/raw/SOURCE2.md compiled=true
-   bash "${KV_PLUGIN_ROOT}/scripts/update-manifest.sh" SOURCE2 compiled=true
+   b. For each UNIQUE concept under `.vault/wiki/concepts/`, read the file ONCE (if existing), apply ALL updates, and write ONCE.
+   c. Cross-reference: update `related` fields. Use `[[wikilinks]]` in bodies. Do NOT read `.vault/wiki/_backlinks.json`; the script handles that.
+4. **Mark compiled** — after writing each summary, atomically update its raw file and manifest entry:
+   ```text
+   <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" mark-compiled SOURCE1
+   <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" mark-compiled SOURCE2
    ```
-   One pair of calls per source. Do NOT batch multiple slugs into one call.
+   Call it once per source. It refuses to mark an item compiled when its summary file is missing.
 5. **Rebuild**:
    ```bash
-   bash "${KV_PLUGIN_ROOT}/scripts/rebuild-index.sh"
-   bash "${KV_PLUGIN_ROOT}/scripts/update-state.sh" .vault last_compiled="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+   <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" rebuild
+   <python> "${KV_PLUGIN_ROOT}/scripts/kv.py" update-state .vault last_compiled=<ISO-UTC-timestamp>
    ```
-6. **Update agent.md** ONLY if `agent.md` frontmatter shows `total_queries >= 3`. Add/update Source Signals. Increment `total_compiles`.
+6. **Update `.vault/agent.md`** ONLY if its frontmatter shows `total_queries >= 3`. Add/update Source Signals. Increment `total_compiles`.
 
 **Tone: flat, factual. Max 2 quotes per article. Split if 3+ sub-topics.**

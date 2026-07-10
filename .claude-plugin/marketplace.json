@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Local research knowledge vault for Claude Code and Codex, with source ingestion, grounded querying, and optional academic MCP integrations.",
-    "version": "2.5.1"
+    "version": "2.6.0"
   },
   "plugins": [
     {
       "name": "knowledge-vault",
       "description": "Project-scoped research vault with ingestion, compilation, grounded queries, optional academic MCP sources, and Obsidian-compatible Markdown.",
-      "version": "2.5.1",
+      "version": "2.6.0",
       "author": {
         "name": "psypeal"
       },

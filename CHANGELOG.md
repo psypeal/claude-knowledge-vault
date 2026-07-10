@@ -2,6 +2,28 @@
 
 All notable changes for Knowledge Vault.
 
+## [2.6.0] - 2026-07-10
+
+### Added
+
+- Added a Python 3.10+ cross-platform vault CLI with atomic ingestion, recovered-original attachment and compile-state transitions, locking, rollback, structured downloads, and bounded PDF extraction.
+- Added Linux, macOS, and Windows regression coverage plus native Codex and Claude Code manifest/install validation in GitHub Actions.
+- Added Codex composer and marketplace artwork.
+
+### Changed
+
+- Made pending-index writes idempotent and made rebuild/lint report compiled sources whose summary files are missing.
+- Routed all Claude Code commands through the canonical shared skill and disabled duplicate automatic command invocation.
+- Replaced source-derived shell arguments in ingest, enrichment, and backfill workflows with structured JSON requests.
+- Escaped untrusted metadata in generated Markdown and validated manifest slugs before using them as paths.
+- Pinned optional MCP packages and PageIndex/Sci-Hub revisions, and documented the required Consensus OAuth login for Codex.
+- Made vault contents private by default with `.vault/.gitignore`; `init --track` remains an explicit opt-in to version control.
+- Retained shell scripts only as backward-compatible adapters around the cross-platform Python implementation.
+
+### Removed
+
+- Removed the redundant session-start hook; initialized projects already carry durable `AGENTS.md` and `CLAUDE.md` guidance.
+
 ## [2.5.1] - 2026-07-10
 
 ### Changed

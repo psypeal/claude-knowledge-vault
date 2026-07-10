@@ -15,7 +15,10 @@ Knowledge Vault stores project-specific source preferences in `.vault/sources.js
       "tools": ["mcp__consensus__*"],
       "add_commands": {
         "claude": "claude mcp add --transport http consensus https://mcp.consensus.app/mcp",
-        "codex": "codex mcp add consensus --url https://mcp.consensus.app/mcp"
+        "codex": [
+          "codex mcp add consensus --url https://mcp.consensus.app/mcp",
+          "codex mcp login consensus"
+        ]
       },
       "added": "2026-07-10T12:00:00Z"
     }
@@ -32,7 +35,7 @@ Knowledge Vault stores project-specific source preferences in `.vault/sources.js
 | `enabled` | boolean | User intent to use the source |
 | `hosts` | string[] | Hosts where configuration was detected, such as `claude` or `codex` |
 | `tools` | string[] | Expected MCP tool names or patterns |
-| `add_commands` | object/null | Host-specific setup commands; never include credentials |
+| `add_commands` | object/null | Host-specific command string or ordered command array; never include credentials |
 | `added` | string | UTC ISO 8601 timestamp |
 
 Rules:

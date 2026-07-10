@@ -4,7 +4,7 @@ A local research knowledge base for Codex and Claude Code. Ingest papers, URLs, 
 
 [![Release](https://img.shields.io/github/v/release/psypeal/knowledge-vault)](https://github.com/psypeal/knowledge-vault/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Codex](https://img.shields.io/badge/Codex-plugin-111827.svg)](https://help.openai.com/en/articles/20001256-plugins-in-codex)
+[![Codex](https://img.shields.io/badge/Codex-plugin-111827.svg)](https://developers.openai.com/codex/plugins)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-7C3AED.svg)](https://docs.anthropic.com/en/docs/claude-code)
 
 ## What it does
@@ -16,7 +16,7 @@ A local research knowledge base for Codex and Claude Code. Ingest papers, URLs, 
 - Optionally searches academic MCP sources and imports Zotero collections.
 - Optionally builds PageIndex trees for targeted PDF retrieval.
 
-The core workflows require only Python 3. External research sources and PDF tree indexing are optional.
+The core workflows require Python 3.10 or newer and run on Linux, macOS, and Windows. External research sources, Poppler PDF extraction, and PageIndex tree indexing are optional.
 
 ## Install
 
@@ -27,7 +27,7 @@ codex plugin marketplace add psypeal/knowledge-vault
 codex plugin add knowledge-vault@knowledge-vault
 ```
 
-In Codex, invoke `$knowledge-vault` or ask naturally:
+In Codex, invoke `@knowledge-vault` or ask naturally:
 
 ```text
 Initialize a knowledge vault in this project.
@@ -76,6 +76,8 @@ Claude Code supports the same natural-language requests plus `/knowledge-vault:*
 
 Knowledge Vault adds concise project guidance to both `AGENTS.md` and `CLAUDE.md`, so either host recognizes an initialized vault later.
 
+New vaults also include `.vault/.gitignore`, so research material stays out of version control by default. Advanced users can run the core initializer with `--track` to opt in deliberately.
+
 ## Workflows
 
 | Workflow | Natural-language example | Claude Code command |
@@ -97,9 +99,11 @@ Knowledge Vault adds concise project guidance to both `AGENTS.md` and `CLAUDE.md
 
 ```text
 .vault/
+├── .gitignore               Privacy-first Git exclusion
 ├── agent.md                 Retrieval hints learned from repeated queries
 ├── inbox/                   Files waiting for the process workflow
 ├── originals/               Preserved PDFs, HTML, and other source artifacts
+├── preferences.md           Domain and compilation preferences
 ├── raw/
 │   ├── .manifest.json       Source state
 │   ├── <slug>.md            Compact extracted source
@@ -117,6 +121,14 @@ Knowledge Vault adds concise project guidance to both `AGENTS.md` and `CLAUDE.md
 
 Open `.vault/` directly in Obsidian to browse links and graph relationships. Use plugin workflows to modify generated wiki content so manifests and indexes stay consistent.
 
+## Architecture
+
+- One canonical `knowledge-vault` skill routes every workflow in Codex and Claude Code.
+- Claude Code slash commands are manual wrappers over that same skill, not independent implementations.
+- `scripts/kv.py` owns manifest/index state transitions, locking, atomic writes, rollback, rebuilds, and linting.
+- Source-derived values travel through JSON request files rather than shell interpolation.
+- Legacy `.sh` entry points remain as compatibility adapters; current workflows call Python directly.
+
 ## Optional integrations
 
 Run `Set up research sources for my knowledge vault` to detect and configure integrations. The setup workflow uses the correct command for the active host.
@@ -124,9 +136,9 @@ Run `Set up research sources for my knowledge vault` to detect and configure int
 | Integration | Purpose | Requirement |
 |---|---|---|
 | Consensus | Evidence-focused academic search | MCP registration |
-| arXiv | Search and download preprints | `uvx` and MCP registration |
-| Paper Search | Search multiple academic indexes | Node.js and MCP registration |
-| Zotero | Collections, metadata, full text, annotations | Zotero 7 and `zotero-mcp-server` |
+| arXiv | Search and download preprints | `uvx`, `arxiv-mcp-server==0.5.0`, and MCP registration |
+| Paper Search | Search multiple academic indexes | Node.js, `paper-search-mcp-nodejs@0.2.7`, and MCP registration |
+| Zotero | Collections, metadata, full text, annotations | Zotero 7 and `zotero-mcp-server==0.6.1` |
 | Unpaywall | Open-access PDF discovery by DOI | `UNPAYWALL_EMAIL` |
 | PageIndex | Hierarchical PDF tree retrieval | Optional Python environment and model API key |
 | Sci-Hub | Optional DOI-based retrieval fallback | Explicit opt-in and legal review |
@@ -182,13 +194,19 @@ rm -rf ~/.claude/skills/knowledge-vault
 
 ## Privacy
 
-Vault content stays in the project's `.vault/` directory. Knowledge Vault has no telemetry or hosted service. The active AI host and any optional integrations process data under their own terms; see [PRIVACY.md](PRIVACY.md).
+Vault content stays in the project's `.vault/` directory and is ignored by Git by default. Knowledge Vault has no telemetry or hosted service. The active AI host and any optional integrations process data under their own terms; see [PRIVACY.md](PRIVACY.md).
 
-Vaults may contain sensitive or copyrighted material. Keep `.vault/` out of version control unless you intentionally want to commit its contents.
+Vaults may contain sensitive or copyrighted material. Remove or override `.vault/.gitignore` only when you intentionally want to commit vault contents.
 
 ## Development
 
-Run the deterministic validation suite:
+Run the cross-platform runtime tests:
+
+```bash
+python3 tests/test_kv.py
+```
+
+On a POSIX host with Codex and/or Claude Code installed, run the complete plugin validation suite:
 
 ```bash
 bash tests/validate-plugin.sh

@@ -1,6 +1,6 @@
 {
   "name": "knowledge-vault",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "Local research knowledge vault for Codex and Claude Code, with source ingestion, grounded querying, and optional academic MCP integrations.",
   "author": {
     "name": "psypeal"
@@ -39,6 +39,8 @@
       "Collect recent papers about this topic",
       "Answer this question from my knowledge vault"
     ],
-    "brandColor": "#4F46E5"
+    "brandColor": "#173F3A",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
   }
 }

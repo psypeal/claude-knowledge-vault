@@ -1,6 +1,6 @@
 {
   "name": "knowledge-vault",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "Local research knowledge vault for Claude Code and Codex, with source ingestion, grounded querying, and optional academic MCP integrations.",
   "author": {
     "name": "psypeal"

@@ -3,4 +3,4 @@ description: Show vault state summary
 disable-model-invocation: true
 ---
 
-!bash "${CLAUDE_PLUGIN_ROOT}/scripts/vault-status.sh"
+Read `${CLAUDE_PLUGIN_ROOT}/skills/knowledge-vault/SKILL.md`, then follow its `status` workflow.

@@ -1,6 +1,6 @@
 # Privacy
 
-Knowledge Vault stores its working data in the local project's `.vault/` directory. The plugin does not include telemetry, analytics, or a hosted service, and it does not send vault contents to the plugin author.
+Knowledge Vault stores its working data in the local project's `.vault/` directory. New vaults include `.vault/.gitignore` and are excluded from version control by default; initialization's explicit `--track` option opts out of that safeguard. The plugin does not include telemetry, analytics, or a hosted service, and it does not send vault contents to the plugin author.
 
 The AI host and any optional service you configure may process data under their own terms. Optional integrations include MCP research servers, Zotero, Unpaywall, Sci-Hub, and LiteLLM-supported model providers used for PageIndex. Knowledge Vault only uses an integration after you configure or approve it.
 

@@ -7,7 +7,7 @@ set -euo pipefail
 VAULT_DIR=".vault"
 
 if [ ! -d "$VAULT_DIR" ]; then
-    echo "Error: No .vault/ directory found. Run /knowledge-vault:init first."
+    echo "Error: No .vault/ directory found. Run the initialize workflow first."
     exit 1
 fi
 
@@ -16,6 +16,16 @@ TITLE="${2:?Missing title}"
 TYPE="${3:?Missing type (paper|article|repo|dataset|meeting|notes|clip)}"
 shift 3
 TAGS=("$@")
+
+if [[ ! "$SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "Error: slug must contain only letters, numbers, dots, underscores, and hyphens."
+    exit 1
+fi
+
+case "$TYPE" in
+    paper|article|repo|dataset|meeting|notes|clip|report|manual|filing|guideline) ;;
+    *) echo "Error: unsupported source type '$TYPE'."; exit 1 ;;
+esac
 
 RAW_FILE="$VAULT_DIR/raw/$SLUG.md"
 MANIFEST="$VAULT_DIR/raw/.manifest.json"
@@ -38,12 +48,14 @@ raw_file = sys.argv[5]
 manifest_path = sys.argv[6]
 tags = list(sys.argv[7:])
 
-# Escape title for YAML double-quoted scalar (backslash, then double-quote)
-yaml_title = title.replace('\\', '\\\\').replace('"', '\\"')
+def yaml_esc(value):
+    return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
+
+yaml_title = yaml_esc(title)
 
 # Build tags YAML array
 if tags:
-    tags_yaml = '[' + ', '.join(f'"{t}"' for t in tags) + ']'
+    tags_yaml = '[' + ', '.join(f'"{yaml_esc(t)}"' for t in tags) + ']'
 else:
     tags_yaml = '[]'
 
@@ -62,6 +74,11 @@ with open(raw_file, 'w') as f:
 with open(manifest_path, 'r') as f:
     manifest = json.load(f)
 
+if any(source.get('slug') == slug for source in manifest.get('sources', [])):
+    os.remove(raw_file)
+    print(f"Error: slug '{slug}' already exists in the manifest")
+    sys.exit(1)
+
 manifest['sources'].append({
     'slug': slug,
     'title': title,
@@ -77,4 +94,4 @@ with open(manifest_path, 'w') as f:
 PYEOF
 
 echo "Created $RAW_FILE"
-echo "Manifest updated. Claude will fill in the content body."
+echo "Manifest updated. The host will fill in the content body."

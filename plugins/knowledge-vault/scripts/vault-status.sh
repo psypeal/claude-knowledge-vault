@@ -122,7 +122,7 @@ if enabled:
     names = ', '.join(x['name'] for x in enabled)
     print(f'Sources:    {len(enabled)} configured ({names})')
 else:
-    print('Sources:    none configured (run /knowledge-vault:setup-sources)')
+    print('Sources:    none configured (run the setup-sources workflow)')
 "
 else
     echo "Sources:    none configured"

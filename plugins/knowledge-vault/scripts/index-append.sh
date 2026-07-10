@@ -1,6 +1,6 @@
 #!/bin/bash
 # knowledge-vault: Append a pending entry to wiki/index.md without full rebuild.
-# Saves ~950 tokens per ingest (avoids Claude reading index.md).
+# Avoids a model-side index.md read for each ingest.
 # Usage: bash index-append.sh <slug> <type> [vault-dir]
 
 set -euo pipefail
@@ -15,12 +15,11 @@ if [ ! -f "$INDEX" ]; then
     exit 1
 fi
 
-python3 -c "
+python3 - "$INDEX" "$SLUG" "$TYPE" << 'PYEOF'
 import re
+import sys
 
-index_path = '$INDEX'
-slug = '$SLUG'
-type_ = '$TYPE'
+index_path, slug, type_ = sys.argv[1:4]
 
 with open(index_path, 'r') as f:
     content = f.read()
@@ -47,11 +46,11 @@ if match:
     while i < len(lines) and (lines[i].startswith('- ') or lines[i].strip() == ''):
         i += 1
     insert_pos += sum(len(l) + 1 for l in lines[:i])
-    entry = f'- \`{slug}\` ({type_})\n'
+    entry = f'- `{slug}` ({type_})\n'
     content = content[:insert_pos] + entry + content[insert_pos:]
 
 with open(index_path, 'w') as f:
     f.write(content)
 
 print(f'Added {slug} to pending')
-"
+PYEOF

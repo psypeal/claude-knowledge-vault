@@ -4,8 +4,8 @@
 #
 # Exit codes:
 #   0  success — tree.json written
-#   2  PageIndex not set up (vendor missing or python deps missing)
-#   3  ANTHROPIC_API_KEY not set
+#   2  PageIndex not installed or dependencies missing
+#   3  model credentials not set
 #   4  PDF not found
 #   5  PageIndex run failed (caller should fall back to flat condense)
 
@@ -15,37 +15,56 @@ PDF_PATH="${1:?Usage: build-tree.sh <pdf_path> <slug> <vault_dir>}"
 SLUG="${2:?Missing slug}"
 VAULT_DIR="${3:?Missing vault_dir}"
 
-PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PAGEINDEX_DIR="$PLUGIN_DIR/vendor/PageIndex"
-RUNNER="$PAGEINDEX_DIR/run_pageindex.py"
-
-if [ ! -f "$RUNNER" ]; then
-    echo "PageIndex vendor not found at $PAGEINDEX_DIR" >&2
-    exit 2
-fi
-
-if ! python3 -c "import litellm, pymupdf, dotenv" 2>/dev/null; then
-    echo "PageIndex Python dependencies not installed. Run: pip3 install -r $PAGEINDEX_DIR/requirements.txt" >&2
-    exit 2
-fi
-
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    # Permit a fallback to vendor/.env if present (set up by setup-sources)
-    if [ -f "$PAGEINDEX_DIR/.env" ]; then
-        # shellcheck disable=SC1090
-        set -a
-        . "$PAGEINDEX_DIR/.env"
-        set +a
-    fi
-    if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-        echo "ANTHROPIC_API_KEY not set; cannot build tree via Claude" >&2
-        exit 3
-    fi
-fi
-
 if [ ! -f "$PDF_PATH" ]; then
     echo "PDF not found: $PDF_PATH" >&2
     exit 4
+fi
+
+if [[ ! "$SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "Invalid slug: $SLUG" >&2
+    exit 5
+fi
+
+PAGEINDEX_REVISION="f413c66fee0bfbb7291c389333f9cc1adac68d57"
+DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/knowledge-vault"
+PAGEINDEX_DIR="${KNOWLEDGE_VAULT_PAGEINDEX_DIR:-$DATA_ROOT/pageindex-${PAGEINDEX_REVISION:0:8}}"
+RUNNER="$PAGEINDEX_DIR/run_pageindex.py"
+DEFAULT_PYTHON="$DATA_ROOT/pageindex-venv-${PAGEINDEX_REVISION:0:8}/bin/python"
+
+if [ -n "${KNOWLEDGE_VAULT_PYTHON:-}" ]; then
+    PYTHON="$KNOWLEDGE_VAULT_PYTHON"
+elif [ -x "$DEFAULT_PYTHON" ]; then
+    PYTHON="$DEFAULT_PYTHON"
+else
+    PYTHON="$(command -v python3 || true)"
+fi
+
+if [ ! -f "$RUNNER" ]; then
+    echo "PageIndex is not installed. Run the PageIndex section of setup-sources." >&2
+    exit 2
+fi
+
+if [ -z "$PYTHON" ] || ! "$PYTHON" -c "import litellm, pymupdf, dotenv" 2>/dev/null; then
+    echo "PageIndex dependencies are unavailable. Run the PageIndex section of the setup-sources workflow." >&2
+    exit 2
+fi
+
+MODEL="${KNOWLEDGE_VAULT_PAGEINDEX_MODEL:-}"
+if [ -z "$MODEL" ]; then
+    if [ -n "${OPENAI_API_KEY:-}" ]; then
+        MODEL="openai/gpt-5.4-mini"
+    elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+        MODEL="anthropic/claude-sonnet-4-6"
+    else
+        echo "PageIndex needs OPENAI_API_KEY, ANTHROPIC_API_KEY, or a configured provider credential." >&2
+        exit 3
+    fi
+elif [[ "$MODEL" == openai/* ]] && [ -z "${OPENAI_API_KEY:-}" ]; then
+    echo "OPENAI_API_KEY is required for PageIndex model $MODEL" >&2
+    exit 3
+elif [[ "$MODEL" == anthropic/* ]] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "ANTHROPIC_API_KEY is required for PageIndex model $MODEL" >&2
+    exit 3
 fi
 
 OUT_DIR="$VAULT_DIR/raw"
@@ -61,7 +80,9 @@ PDF_ABS="$(cd "$(dirname "$PDF_PATH")" && pwd)/$(basename "$PDF_PATH")"
 
 (
     cd "$WORK_DIR"
-    python3 "$RUNNER" --pdf_path "$PDF_ABS" 2>&1
+    ARGS=(--pdf_path "$PDF_ABS")
+    [ -n "$MODEL" ] && ARGS+=(--model "$MODEL")
+    "$PYTHON" "$RUNNER" "${ARGS[@]}" 2>&1
 ) || {
     echo "PageIndex run failed for $PDF_PATH" >&2
     exit 5

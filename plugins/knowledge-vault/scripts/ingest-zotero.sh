@@ -8,7 +8,7 @@ set -euo pipefail
 VAULT_DIR=".vault"
 
 if [ ! -d "$VAULT_DIR" ]; then
-    echo "Error: No .vault/ directory found. Run /knowledge-vault:init first."
+    echo "Error: No .vault/ directory found. Run the initialize workflow first."
     exit 1
 fi
 
@@ -21,6 +21,16 @@ YEAR="${6:-}"
 AUTHORS="${7:-}"
 shift 7
 TAGS=("$@")
+
+if [[ ! "$SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "Error: slug must contain only letters, numbers, dots, underscores, and hyphens."
+    exit 1
+fi
+
+if [ -n "$YEAR" ] && [[ ! "$YEAR" =~ ^[0-9]{4}$ ]]; then
+    echo "Error: year must be four digits."
+    exit 1
+fi
 
 RAW_FILE="$VAULT_DIR/raw/$SLUG.md"
 MANIFEST="$VAULT_DIR/raw/.manifest.json"
@@ -38,7 +48,7 @@ slug, title, zotero_key, citekey, doi, year, authors_csv, timestamp, raw_file, m
 tags = list(sys.argv[11:])
 
 def yaml_esc(s):
-    return s.replace('\\', '\\\\').replace('"', '\\"')
+    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ').replace('\r', ' ')
 
 authors = [a.strip() for a in authors_csv.split('|') if a.strip()] if authors_csv else []
 authors_yaml = '[' + ', '.join(f'"{yaml_esc(a)}"' for a in authors) + ']' if authors else '[]'
@@ -67,6 +77,12 @@ with open(raw_file, 'w') as f:
 
 with open(manifest_path, 'r') as f:
     manifest = json.load(f)
+
+if any(source.get('slug') == slug for source in manifest.get('sources', [])):
+    import os
+    os.remove(raw_file)
+    print(f"Error: slug '{slug}' already exists in the manifest")
+    sys.exit(1)
 
 manifest['sources'].append({
     'slug': slug,

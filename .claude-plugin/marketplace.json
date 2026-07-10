@@ -1,17 +1,17 @@
 {
-  "name": "claude-knowledge-vault",
+  "name": "knowledge-vault",
   "owner": {
     "name": "psypeal"
   },
   "metadata": {
-    "description": "Knowledge Vault plugin for Claude Code — project-scoped knowledge base with academic collection via MCP, Zotero integration, preserved originals + bibliographic slugs, PageIndex tree indexing per PDF, 4-tier reasoning-routed query, and PDF enrichment via Unpaywall and/or Sci-Hub (opt-in)",
-    "version": "2.4.0"
+    "description": "Local research knowledge vault for Claude Code and Codex, with source ingestion, grounded querying, and optional academic MCP integrations.",
+    "version": "2.5.0"
   },
   "plugins": [
     {
       "name": "knowledge-vault",
-      "description": "Project-scoped knowledge base with ingestion (URL, Zotero, PubMed/Scholar), preserved originals + bibliographic slugs, PageIndex tree indexing per PDF, 4-tier reasoning-routed query, PDF enrichment via Unpaywall and/or Sci-Hub (opt-in), compilation, and Obsidian browsing.",
-      "version": "2.4.0",
+      "description": "Project-scoped research vault with ingestion, compilation, grounded queries, optional academic MCP sources, and Obsidian-compatible Markdown.",
+      "version": "2.5.0",
       "author": {
         "name": "psypeal"
       },

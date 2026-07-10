@@ -237,7 +237,7 @@ if warnings == 0 and suggestions == 0:
 
 report.append(f"**Automated totals: {warnings} warnings, {suggestions} suggestions.**")
 report.append("")
-report.append("Checks 1 (contradictions) and 7 (gap analysis) require Claude — see below.")
+report.append("Checks 1 (contradictions) and 7 (gap analysis) require the host model — see below.")
 
 print('\n'.join(report))
 PYEOF

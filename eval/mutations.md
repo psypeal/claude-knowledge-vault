@@ -19,7 +19,7 @@ Tests: ingest-url, ingest-notes, ingest-long, ingest-special
 
 ## M4: Query — move "when to do more" to reference file
 Target: commands/query.md
-Change: Replace "When to do more" section with: "If user says 'file it' or 3+ queries this session, read ${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/query-extensions.md"
+Change: Replace "When to do more" section with: "If user says 'file it' or 3+ queries this session, read ${CLAUDE_PLUGIN_ROOT}/skills/knowledge-vault/references/query-extensions.md"
 Tests: query-simple, query-cross, query-missing
 
 ## M5: Compile — gate agent.md update on query threshold
@@ -49,5 +49,5 @@ Tests: compile-single, compile-batch
 
 ## M10: Ingest — externalize condensation template
 Target: commands/ingest.md
-Change: Replace inline condensation template with: "If 1000+ words, read ${CLAUDE_PLUGIN_ROOT}/skills/vault-operations/references/condensation-template.md and apply."
+Change: Replace inline condensation template with: "If 1000+ words, read ${CLAUDE_PLUGIN_ROOT}/skills/knowledge-vault/references/condensation-template.md and apply."
 Tests: ingest-long

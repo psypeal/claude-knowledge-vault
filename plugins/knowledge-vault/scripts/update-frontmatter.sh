@@ -1,6 +1,6 @@
 #!/bin/bash
 # knowledge-vault: Update YAML frontmatter fields without reading the full file.
-# Replaces Claude re-reading entire raw files (~2K-8K tokens) just to flip a flag.
+# Avoids a model-side full-file read when only frontmatter changes.
 # Usage: bash update-frontmatter.sh <file> <key=value> [key=value...]
 # Example: bash update-frontmatter.sh .vault/raw/paper.md compiled=true
 
@@ -14,13 +14,23 @@ if [ ! -f "$FILE" ]; then
     exit 1
 fi
 
-python3 -c "
-import sys, re
+python3 - "$FILE" "$@" << 'PYEOF'
+import re
+import sys
 
-filepath = '$FILE'
+filepath = sys.argv[1]
 updates = {}
-for arg in sys.argv[1:]:
+for arg in sys.argv[2:]:
+    if '=' not in arg:
+        print(f"Error: invalid update '{arg}' (expected key=value)")
+        sys.exit(1)
     key, _, val = arg.partition('=')
+    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_-]*', key):
+        print(f"Error: invalid frontmatter key '{key}'")
+        sys.exit(1)
+    if '\n' in val or '\r' in val:
+        print(f"Error: multiline values are not supported for '{key}'")
+        sys.exit(1)
     # Handle booleans
     if val.lower() == 'true':
         val = 'true'
@@ -28,7 +38,7 @@ for arg in sys.argv[1:]:
         val = 'false'
     updates[key] = val
 
-with open(filepath, 'r') as f:
+with open(filepath, 'r', encoding='utf-8') as f:
     content = f.read()
 
 if not content.startswith('---'):
@@ -60,8 +70,8 @@ for key, val in updates.items():
 
 new_content = '---\n' + '\n'.join(new_fm_lines) + '\n---' + parts[2]
 
-with open(filepath, 'w') as f:
+with open(filepath, 'w', encoding='utf-8') as f:
     f.write(new_content)
 
 print(f'Updated {filepath}: {list(updates.keys())}')
-" "$@"
+PYEOF

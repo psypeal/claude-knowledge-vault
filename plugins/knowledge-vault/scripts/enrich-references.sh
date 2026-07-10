@@ -1,7 +1,7 @@
 #!/bin/bash
 # knowledge-vault: Scan raw/ for reference-only items with a DOI.
 # Output: JSON list of {slug, doi, file, title} candidates for fulltext enrichment.
-# Used by /knowledge-vault:enrich-references.
+# Used by the enrich-references workflow.
 # Usage: bash enrich-references.sh
 
 set -euo pipefail
@@ -9,7 +9,7 @@ set -euo pipefail
 VAULT_DIR=".vault"
 
 if [ ! -d "$VAULT_DIR/raw" ]; then
-    echo '{"error": "No .vault/raw/ directory found. Run /knowledge-vault:init first."}'
+    echo '{"error": "No .vault/raw/ directory found. Run the initialize workflow first."}'
     exit 1
 fi
 

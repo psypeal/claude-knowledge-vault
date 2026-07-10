@@ -9,7 +9,7 @@ set -euo pipefail
 VAULT_DIR="${1:-.vault}"
 
 if [ ! -d "$VAULT_DIR/raw" ]; then
-    echo '{"error": "No .vault/raw/ directory found. Run /knowledge-vault:init first."}'
+    echo '{"error": "No .vault/raw/ directory found. Run the initialize workflow first."}'
     exit 1
 fi
 

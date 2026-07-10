@@ -1,6 +1,6 @@
 #!/bin/bash
 # knowledge-vault: Emit first-page text of a PDF for metadata extraction by the caller.
-#   The caller (a Claude command) reads stdout and infers authors/org + year + title-keyword
+#   The host workflow reads stdout and infers authors/org + year + title-keyword
 #   to feed into derive-slug.sh.
 # Usage: bash extract-metadata.sh <pdf_path> [pages]
 #   pages: number of leading pages to extract (default: 1)

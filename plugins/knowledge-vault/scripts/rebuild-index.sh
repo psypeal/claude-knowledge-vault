@@ -1,6 +1,6 @@
 #!/bin/bash
 # knowledge-vault: Rebuild wiki/index.md and wiki/_backlinks.json from file frontmatter.
-# Replaces Claude reading every file (~26K-60K+ tokens) with a free script call.
+# Replaces model-side full-vault reads with a deterministic script call.
 # Usage: bash rebuild-index.sh [vault-dir]
 
 set -euo pipefail
@@ -257,5 +257,5 @@ if summaries_without_wikilinks:
     for slug in summaries_without_wikilinks:
         print(f"  - wiki/summaries/{slug}.md", file=sys.stderr)
     print("  These summaries are disconnected from the concept graph.", file=sys.stderr)
-    print("  Fix: re-run /knowledge-vault:compile <slug> or /knowledge-vault:cleanup.", file=sys.stderr)
+    print("  Fix: re-run the compile workflow for <slug>, or run cleanup.", file=sys.stderr)
 PYEOF

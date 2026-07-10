@@ -26,7 +26,7 @@ Increment cited count for any source whose summary or raw content contributed to
 
 ### f. Correction Logging
 
-If agent.md routing led to a wrong path (Claude had to discard and re-route), log the correction (max 5, FIFO).
+If `agent.md` routing led the host down a wrong path, log the correction (max 5, FIFO).
 
 ### g. Stats Update
 

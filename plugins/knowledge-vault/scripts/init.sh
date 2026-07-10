@@ -8,17 +8,36 @@ set -euo pipefail
 TARGET="${1:-.}"
 VAULT_DIR="$TARGET/.vault"
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+INSTRUCTIONS="$PLUGIN_DIR/assets/VAULT-INSTRUCTIONS.md"
 
-if [ -d "$VAULT_DIR" ]; then
-    echo "Vault already exists at $VAULT_DIR"
+if [ ! -f "$INSTRUCTIONS" ]; then
+    echo "Error: plugin instructions missing at $INSTRUCTIONS" >&2
     exit 1
 fi
 
-# Create directory structure
-# v2.4: originals/ holds preserved source artifacts (PDF, EPUB, HTML, etc.)
-# whose extracted content lives as raw/<slug>.md, with optional raw/<slug>.tree.json
-# (PageIndex tree).
-mkdir -p "$VAULT_DIR"/{Clippings,originals,raw,wiki/{concepts,summaries,outputs},templates}
+ensure_project_instructions() {
+    local filename target_file
+    for filename in CLAUDE.md AGENTS.md; do
+        target_file="$TARGET/$filename"
+        if [ -f "$target_file" ]; then
+            if ! grep -q "^## Knowledge Vault$" "$target_file" 2>/dev/null; then
+                printf '\n' >> "$target_file"
+                cat "$INSTRUCTIONS" >> "$target_file"
+            fi
+        else
+            cat "$INSTRUCTIONS" > "$target_file"
+        fi
+    done
+}
+
+if [ -d "$VAULT_DIR" ]; then
+    ensure_project_instructions
+    echo "Vault already exists at $VAULT_DIR"
+    exit 0
+fi
+
+# Create the vault directory structure.
+mkdir -p "$VAULT_DIR"/{Clippings,inbox,originals,raw,wiki/{concepts,summaries,outputs},templates}
 
 # Empty manifest
 cat > "$VAULT_DIR/raw/.manifest.json" << 'EOF'
@@ -56,7 +75,7 @@ updated: null
 
 ## Source Summaries (0 compiled)
 
-_No sources compiled yet. Use `/knowledge-vault:ingest` to add sources._
+_No sources compiled yet. Add a source with the ingest workflow._
 
 ## Pending Compilation (0)
 
@@ -64,7 +83,7 @@ _No sources pending._
 
 ## Concepts (0)
 
-_No concepts extracted yet. Use `/knowledge-vault:compile` after ingesting sources._
+_No concepts extracted yet. Run the compile workflow after ingesting sources._
 
 ## Recent Outputs
 
@@ -118,16 +137,7 @@ if [ -d "$PLUGIN_DIR/assets/templates" ]; then
     cp "$PLUGIN_DIR/assets/templates"/*.md "$VAULT_DIR/templates/" 2>/dev/null || true
 fi
 
-# Append CLAUDE.md addendum if not already present
-CLAUDE_MD="$TARGET/CLAUDE.md"
-if [ -f "$CLAUDE_MD" ]; then
-    if ! grep -q "## Knowledge Vault" "$CLAUDE_MD" 2>/dev/null; then
-        echo "" >> "$CLAUDE_MD"
-        cat "$PLUGIN_DIR/assets/VAULT-CLAUDE.md" >> "$CLAUDE_MD"
-    fi
-else
-    cat "$PLUGIN_DIR/assets/VAULT-CLAUDE.md" > "$CLAUDE_MD"
-fi
+ensure_project_instructions
 
 echo "Vault initialized at $VAULT_DIR/"
 echo "Open $VAULT_DIR/ as an Obsidian vault to browse the knowledge base."

@@ -1,7 +1,7 @@
 {
   "name": "knowledge-vault",
-  "version": "2.4.1",
-  "description": "Project-scoped knowledge base with ingestion (URL, Zotero, PubMed/Scholar), preserved originals + bibliographic slugs, PageIndex tree indexing per PDF, 4-tier reasoning-routed query, and Obsidian browsing.",
+  "version": "2.5.0",
+  "description": "Local research knowledge vault for Codex and Claude Code, with source ingestion, grounded querying, and optional academic MCP integrations.",
   "author": {
     "name": "psypeal"
   },
@@ -22,8 +22,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Knowledge Vault",
-    "shortDescription": "Project-scoped knowledge base for research workflows.",
-    "longDescription": "Knowledge Vault ingests papers, notes, and web clips into a structured `.vault` workspace, preserves originals, builds PageIndex trees for PDFs, and enables grounded querying in Obsidian-ready markdown.",
+    "shortDescription": "Build and query a local research vault",
+    "longDescription": "Knowledge Vault turns a project into a local, Obsidian-compatible research workspace. Ingest papers, URLs, notes, and Zotero items; compile linked summaries and concepts; then answer questions from the vault with source-grounded retrieval. Academic MCP sources and PageIndex PDF trees are optional.",
     "developerName": "psypeal",
     "category": "Productivity",
     "capabilities": [
@@ -32,10 +32,12 @@
       "Write"
     ],
     "websiteURL": "https://github.com/psypeal/knowledge-vault",
+    "privacyPolicyURL": "https://github.com/psypeal/knowledge-vault/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/psypeal/knowledge-vault/blob/main/plugins/knowledge-vault/LICENSE",
     "defaultPrompt": [
-      "Set up a new knowledge vault for this project",
-      "Collect and ingest recent relevant papers",
-      "Compile and query research insights with confidence"
+      "Initialize a knowledge vault in this project",
+      "Collect recent papers about this topic",
+      "Answer this question from my knowledge vault"
     ],
     "brandColor": "#4F46E5"
   }

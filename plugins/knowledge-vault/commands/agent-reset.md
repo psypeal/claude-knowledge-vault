@@ -1,6 +1,6 @@
 ---
-description: Reset learned retrieval intelligence
+description: Reset learned retrieval hints
 disable-model-invocation: true
 ---
 
-!bash "${CLAUDE_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-.}}/scripts/agent-reset.sh"
+!bash "${CLAUDE_PLUGIN_ROOT}/scripts/agent-reset.sh"

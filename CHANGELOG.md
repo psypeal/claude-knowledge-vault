@@ -2,6 +2,23 @@
 
 All notable changes for Knowledge Vault.
 
+## [2.5.0] - 2026-07-10
+
+### Added
+
+- Added one first-class Codex skill that routes every vault workflow while keeping Claude Code slash commands as thin wrappers over the same instructions.
+- Added Codex-aware MCP detection and host-specific setup commands.
+- Added `AGENTS.md` project guidance, OpenAI-backed PageIndex support, a privacy policy, and cross-host validation tests.
+
+### Changed
+
+- Consolidated marketplace metadata and removed the stale nested marketplace manifest.
+- Consolidated workflow guidance into one lazily routed skill and removed the redundant collector agent.
+- Made initialization idempotent and added the missing vault inbox directory.
+- Replaced the long README with a concise Claude Code and Codex operator guide.
+- Replaced the bundled PageIndex source tree with an opt-in installer pinned to a reviewed upstream revision.
+- Stopped writing API keys into the installed plugin directory.
+
 ## [2.4.1] - 2026-05-28
 
 ### Added
